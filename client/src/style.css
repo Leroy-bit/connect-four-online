@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+* {
+  /* --tg-theme-secondary-bg-color: #000000;
+  --tg-theme-bg-color: #181819;
+  --tg-theme-text-color: #ffffff;
+  --tg-theme-hint-color: #7d7d7d;
+  --tg-theme-link-color: #7590e2;
+  /* --tg-theme-button-color: #738fed; */
+  --decline-color: #e64d44;
+  --accept-color: #31b545;
+  /* --tg-viewport-stable-height: 100vh;
+  --max-width: 500px; */ 
+}
+
+body {
+  margin: 0;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  aspect-ratio: 9/16;
+  max-width: var(--max-width);
+  height: fit-content;
+}
+#app {
+  width: 100%;
+  height: var(--tg-viewport-stable-height);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+}
