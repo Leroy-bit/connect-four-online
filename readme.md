@@ -1,5 +1,5 @@
 # Introduction
-**Welcome to the [@ConnectFourOnlineBot](https://github.com/Leroy-bit/connect-four-online) documentation. The bot is developed to play the game Connect Four with a friend in a private chat.**
+**Welcome to the [@ConnectFourOnlineBot](https://t.me/ConnectFourOnlineBot) documentation. The bot is developed to play the game Connect Four with a friend in a private chat.**
 
 ## Build
 
