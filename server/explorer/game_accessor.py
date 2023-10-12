@@ -3,7 +3,7 @@ import random
 from loguru import logger
 from base.entity import BaseEntity
 from explorer.websocket_accessor import Event
-from explorer.websocket_manager import ServerEvents
+from explorer.websocket_manager import ServerEvents, ClientEvents
 from dataclasses import dataclass, asdict
 
 TURN_TIMEOUT = 20
@@ -50,6 +50,7 @@ class GameAccessor(BaseEntity):
         '''Create a new game.'''
         game = Game(game_id, player_id, user_name)
         self.GAMES[game.id] = game
+        self.explorer.logger.trace(f'Game {game_id} created by {user_name}[{player_id}]')
 
     async def getAllPlayers(self, game_id: int) -> list[Player]:
         '''Returns all players in a game.'''
@@ -66,11 +67,16 @@ class GameAccessor(BaseEntity):
 
     async def addPlayer(self, game_id: int, player_id: int, user_name: str) -> None:
         '''Adds a player to a game.'''
-        player = Player(player_id, user_name)
-        self.GAMES[game_id].players[player_id]  = player
-        print(asdict(player))
-        await self.explorer.ws.broadcast(game_id, Event(ServerEvents.PLAYER_JOINED, asdict(player)), [player_id])
-        await self.startGame(game_id)
+
+        if game_id in self.explorer.game_accessor.GAMES:
+            await self.explorer.ws.send(game_id, player_id, Event(ServerEvents.CONNECTED, {'players': (await self.explorer.game_accessor.getAllPlayers(game_id))}))
+            player = Player(player_id, user_name)
+            self.GAMES[game_id].players[player_id] = player
+            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.PLAYER_JOINED, asdict(player)), [player_id])
+            await self.startGame(game_id)
+        else:
+            await self.explorer.ws.send(game_id, player_id, Event(ServerEvents.CONNECTED, {}))
+            await self.createGame(game_id, player_id, user_name)
     
     async def checkWin(self, board: list[list[int]], columns: int, rows: int) -> int:
         # Check for horizontal win
@@ -92,7 +98,6 @@ class GameAccessor(BaseEntity):
             for row in range(rows - 3):
                 if len(board[column]) > row and len(board[column + 1]) > row + 1 and len(board[column + 2]) > row + 2 and len(board[column + 3]) > row + 3:
                     if board[column][row] == board[column + 1][row + 1] == board[column + 2][row + 2] == board[column + 3][row + 3]:
-                        print('diagonal win')
                         return board[column][row]
                     
         # Check for negative diagonal win
@@ -100,7 +105,6 @@ class GameAccessor(BaseEntity):
             for row in range(3, rows):
                 if len(board[column]) > row and len(board[column + 1]) > row - 1 and len(board[column + 2]) > row - 2 and len(board[column + 3]) > row - 3:
                     if board[column][row] == board[column + 1][row - 1] == board[column + 2][row - 2] == board[column + 3][row - 3]:
-                        print('negative diagonal win')
                         return board[column][row]
         
         return False
@@ -109,6 +113,7 @@ class GameAccessor(BaseEntity):
         players_ids = list(self.GAMES[game_id].players.keys())
         next_player_id = players_ids[players_ids.index(self.GAMES[game_id].current_player_id) - 1]
         self.GAMES[game_id].current_player_id = next_player_id
+        await self.explorer.ws.create_turn_timeout_task(game_id, next_player_id)
         await self.explorer.ws.broadcast(game_id, Event(ServerEvents.NEXT_PLAYER, {'current_player_id': next_player_id}))
 
     async def makeTurn(self, game_id: int, player_id: int, column: int = None) -> None:
@@ -124,8 +129,8 @@ class GameAccessor(BaseEntity):
         
         if len(self.GAMES[game_id].board[column]) < self.GAMES[game_id].boardRows: # if move is valid
             self.GAMES[game_id].board[column].append(player_id)
-            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.MAKED_TURN, {'player_id': player_id, 'column': column}), [player_id])
-            
+            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.MAKED_TURN, {'player_id': player_id, 'column': column}), [player_id])  
+            await self.explorer.ws.cancel_turn_timeout_task(game_id, self.GAMES[game_id].current_player_id)
             winner = await self.checkWin(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             if winner:
                 await self.explorer.ws.broadcast(game_id, Event(ServerEvents.PLAYER_WIN, {'player_id': winner}))

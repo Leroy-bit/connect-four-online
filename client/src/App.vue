@@ -1,6 +1,6 @@
 <template>
+      <ScreenManager ref="screenManager"></ScreenManager>
       <PopupManager @popupButtonClicked="onPopupButtonClicked" ref="popupManager" />
-      <WaitingScreen v-show="!game_started && !opponent.id"/>
       <Player v-show="game_started" :id="opponent.id" :name="opponent.name" :bar_type="false" :isCurrentPlayer="opponent.id == currentPlayerId">
           {{opponent.name}}
       </Player> 
@@ -13,10 +13,11 @@
 <script>
 import Board from './components/Board.vue'
 import Player from './components/Player.vue'
-import WaitingScreen from './components/WaitingScreen.vue'
+import ScreenManager from './components/ScreenManager.vue'
 import PopupManager from './components/PopupManager.vue'
-const socket_url = 'wss://' + window.location.host + '/ws?' + window.Telegram.WebApp.initData
-const socket =  'MozWebSocket' in window ? new MozWebSocket(socket_url) : new WebSocket(socket_url)
+
+const socket_url = 'wss://' + window.location.host + ':443/ws?' + window.Telegram.WebApp.initData
+const socket = window.Telegram.WebApp.initDataUnsafe.chat_type == "private" ? new WebSocket(socket_url) : undefined
 
 export default {
   data () {
@@ -25,7 +26,8 @@ export default {
             opponent: {},
             currentPlayerId: 1,
             serverEvents: {
-                CONNECT: 'CONNECT',
+                CONNECTED: 'CONNECTED',
+                DISCONNECTED: 'DISCONNECTED',
                 MAKED_TURN: 'MAKED_TURN',
                 PLAYER_JOINED: 'PLAYER_JOINED',
                 PLAYER_DISCONNECTED: 'PLAYER_DISCONNECTED',
@@ -49,18 +51,15 @@ export default {
   components: {
     'Board': Board,
     'Player': Player,
-    'WaitingScreen': WaitingScreen,
-    'PopupManager': PopupManager
+    'PopupManager': PopupManager,
+    'ScreenManager': ScreenManager
   },
 
   methods: {
     sendEvent(event, data) {
       if (this.connected) {
         socket.send(JSON.stringify({'event': event, 'data': data}))
-        console.log('[sendEvent]('+ event +')' + JSON.stringify(data))
-      }
-      else {
-        console.log('[sendEvent]('+ event +')' + JSON.stringify(data) + ' - not connected')
+        console.log('[SEND EVENT]('+ event +')' + JSON.stringify(data))
       }
     },
     makeTurn(column) {
@@ -103,37 +102,45 @@ export default {
   },
 
   mounted() {
-    window.Telegram.WebApp.enableClosingConfirmation()
-    window.Telegram.WebApp.onClose = () => {
-      this.sendEvent(this.clientEvents.DISCONNECT, {})
-    }
+    if (window.Telegram.WebApp.initDataUnsafe.chat_type == "private") {
+      
+      window.Telegram.WebApp.onClose = () => {
+        this.sendEvent(this.clientEvents.DISCONNECT, {})
+      }
+      
+      this.$refs.screenManager.showScreen('Waiting for opponent', 'waiting')
 
-    socket.onmessage = (message) => {
+      socket.onmessage = (message) => {
       let data = JSON.parse(message.data)
-      console.log('[RECIEVE]('+ data.event +')' + JSON.stringify(data.data))
-      if (data.event == this.serverEvents.CONNECT) {
+      console.log('[RECIEVE EVENT]('+ data.event +')' + JSON.stringify(data.data))
+      if (data.event == this.serverEvents.CONNECTED) {
         this.connected = true
         if (data.data.players) {
           this.opponent = data.data.players[0]
         }
       }
     else if (data.event == this.serverEvents.PLAYER_JOINED) {
+      window.Telegram.WebApp.enableClosingConfirmation()
       this.opponent = data.data
       }
     else if (data.event == this.serverEvents.GAME_STARTED) {
+      this.$refs.screenManager.hideScreen()
       this.$refs.popupManager.closePopup()
       this.$refs.board.clearBoard()
       this.game_started = true
-      this.nextPlayer(data.data['current_player_id'])
+      this.nextPlayer(data.data.current_player_id)
       }
     else if (data.event == this.serverEvents.MAKED_TURN) {
       this.$refs.board.pushToBoard(data.data.player_id, data.data.column)
       }
     else if (data.event == this.serverEvents.PLAYER_WIN) {
-      this.$refs.popupManager.openPopup('You lose', [{id: 'rematch', text: 'Rematch', type: true}, {id: 'disconnect', text: 'DISCONNECT', type: false}])
+      let text = data.data.player_id == this.me.id ? 'You win' : 'You lose'
+      setTimeout(() => {
+        this.$refs.popupManager.openPopup(text, [{id: 'rematch', text: 'Rematch', type: true}, {id: 'disconnect', text: 'Disconnect', type: false}])
+      }, 500)
       }
     else if (data.event == this.serverEvents.NEXT_PLAYER) { 
-      this.nextPlayer(data.data['current_player_id'])
+      this.nextPlayer(data.data.current_player_id)
       }
     else if (data.event == this.serverEvents.PLAYER_DISCONNECTED) {
       this.$refs.popupManager.openPopup('Opponent disconnected', [{id: 'close', text: 'Close', type: true}])
@@ -141,7 +148,17 @@ export default {
     else if (data.event == this.serverEvents.REMATCH_REQUEST) {
       this.$refs.popupManager.openPopup('Opponent wants to rematch', [{id: 'rematch', text: 'Accept', type: true}, {id: 'close', text: 'Decline', type: false}])
       }
+    else if (data.event == this.serverEvents.DISCONNECTED) {
+      let reason = data.data.reason
+      this.$refs.popupManager.openPopup('You have been disconnected: ' + reason, [{id: 'close', text: 'Close', type: true}])
+      }
     }
+    }
+    else {
+      this.$refs.screenManager.showScreen('You can play only in private chat', 'error')
+    }
+
+    
   }
 
 }

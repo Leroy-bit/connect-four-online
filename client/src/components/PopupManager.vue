@@ -25,12 +25,13 @@
         },
         methods: {
             openPopup(title, buttons) {
-                console.log('[openPopup]('+ title +')' + JSON.stringify(buttons))
+                console.log('[OPEN POPUP]('+ title +')' + JSON.stringify(buttons))
                 this.popupTitle = title
                 this.popupButtons = buttons
                 this.showPopup = true
             },
             closePopup() {
+                console.log('[CLOSE POPUP]')
                 this.showPopup = false
             },
             onButtonClick(id) {

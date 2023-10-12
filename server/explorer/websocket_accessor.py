@@ -9,6 +9,24 @@ if typing.TYPE_CHECKING:
     from base.application import Request
     from explorer.game_accessor import TURN_TIMEOUT
 
+TURN_TIMEOUT = 20
+
+class ServerEvents:
+    MAKED_TURN = 'MAKED_TURN'
+    PLAYER_JOINED = 'PLAYER_JOINED'
+    PLAYER_DISCONNECTED = 'PLAYER_DISCONNECTED'
+    NEXT_PLAYER = 'NEXT_PLAYER'
+    GAME_STARTED = 'GAME_STARTED'
+    PLAYER_WIN = 'PLAYER_WIN'
+    REMATCH_REQUEST = 'REMATCH_REQUEST'
+    CONNECTED = 'CONNECTED'
+    DISCONNECTED = 'DISCONNECTED'
+
+class ClientEvents:
+    DISCONNECT = 'DISCONNECT'
+    MAKE_TURN = 'MAKE_TURN'
+    REMATCH = 'REMATCH'
+
 @dataclass
 class Event:
     event: str
@@ -32,37 +50,33 @@ class WebSocketAccessor(BaseEntity):
     async def open(self, request: 'Request') -> None:
         ws = WebSocketResponse()
         await ws.prepare(request)
-        print(self.explorer.game_accessor.GAMES)
         if request.game_id in self.explorer.game_accessor.GAMES:
-            if request.user_id not in self.explorer.game_accessor.GAMES[request.game_id].players & len(self.explorer.game_accessor.GAMES[request.game_id].players) < 2:
-                print('game exists')
+            if request.user_id not in self.explorer.game_accessor.GAMES[request.game_id].players and len(self.explorer.game_accessor.GAMES[request.game_id].players) < 2:
                 self.connections[request.game_id][request.user_id] = Connection(ws, time.time())
-                await self.explorer.ws.send(request.game_id, request.user_id, Event('CONNECT', {'players': (await self.explorer.game_accessor.getAllPlayers(request.game_id))}))
                 await self.explorer.game_accessor.addPlayer(request.game_id, request.user_id, request.user_name)
         else:
-            print('game not exists')
             self.connections[request.game_id] = {request.user_id: Connection(ws, time.time())}
-            await self.explorer.ws.send(request.game_id, request.user_id, Event('CONNECT', {}))
-            await self.explorer.game_accessor.createGame(request.game_id, request.user_id, request.user_name)
-        print(f'Player {request.user_name}[{request.user_id}] connected to game {request.game_id}')
+            await self.explorer.game_accessor.addPlayer(request.game_id, request.user_id, request.user_name)
+
+        self.explorer.logger.trace(f'Player {request.user_name}[{request.user_id}] connected to game {request.game_id}')
         
-
-
-    async def close(self, game_id, player_id) -> None:
+    async def close(self, game_id: int, player_id: int, reason: str | None) -> None:
         if not self.connections.get(game_id):
             return
         if not self.connections[game_id].get(player_id):
             return
+        if reason:
+            await self.explorer.ws.send(game_id, player_id, Event(ServerEvents.DISCONNECTED, {'reason': reason}))
         await self.broadcast(game_id, Event('PLAYER_DISCONNECTED', {'player_id': player_id}), [player_id])
         await self._close(game_id, player_id)
 
-    async def close_all(self, game_id) -> None:
+    async def close_all(self, game_id: int) -> None:
         if not self.connections.get(game_id):
             return
         for player_id in list(self.connections[game_id]):
             await self._close(game_id, player_id)
     
-    async def _close(self, game_id, player_id) -> None:
+    async def _close(self, game_id: int, player_id: int) -> None:
         connection = self.connections.get(game_id).pop(player_id)
 
         if connection.close_callback:
@@ -71,7 +85,7 @@ class WebSocketAccessor(BaseEntity):
         if not connection.ws.closed:
             await connection.ws.close()
 
-    async def read_stream(self, game_id, player_id) -> typing.AsyncIterable[Event]:
+    async def read_stream(self, game_id: int, player_id: int) -> typing.AsyncIterable[Event]:
         if not self.connections.get(game_id):
             return
         if not self.connections[game_id].get(player_id):
@@ -80,7 +94,6 @@ class WebSocketAccessor(BaseEntity):
         async for msg in self.connections[game_id][player_id].ws:
             await self.refresh_connection(game_id, player_id)
             data = msg.json()
-            print(data)
             if 'event' in data and 'data' in data:
                 yield Event(data['event'], data['data'])
 
@@ -90,7 +103,7 @@ class WebSocketAccessor(BaseEntity):
         if not self.connections[game_id].get(user_id):
             return
         await self.connections[game_id][user_id].ws.send_json(asdict(event))
-        print(f'Send {event} to {user_id} in game {game_id}')
+        self.explorer.logger.trace(f'Send {event} to {user_id} in game {game_id}')
 
     async def broadcast(self, game_id: int, event: Event, except_of: list[int] = []) -> None:
         if not self.connections.get(game_id):
@@ -107,7 +120,7 @@ class WebSocketAccessor(BaseEntity):
             return
         if not self.connections[game_id].get(player_id):
             return
-        self.connections[game_id][player_id].turn_timeout_task = await self._create_turn_timeout_task(game_id, player_id, TURN_TIMEOUT, self.close)
+        self.connections[game_id][player_id].turn_timeout_task = await self.create_timeout_task(game_id, player_id, TURN_TIMEOUT, self.close)
 
     async def cancel_turn_timeout_task(self, game_id: int, player_id: int) -> None:
         if not self.connections.get(game_id):
@@ -117,7 +130,7 @@ class WebSocketAccessor(BaseEntity):
         if self.connections[game_id][player_id].turn_timeout_task:
             self.connections[game_id][player_id].turn_timeout_task.cancel()
 
-    async def _create_turn_timeout_task(self, game_id: int, player_id: int, timeout: int, callback: typing.Callable) -> None:
+    async def create_timeout_task(self, game_id: int, player_id: int, timeout: int, callback: typing.Callable) -> None:
         def log_timeout(result: asyncio.Task):
             try:
                 exc = result.exception()
@@ -125,19 +138,19 @@ class WebSocketAccessor(BaseEntity):
                 return
 
             if exc:
-                print(f'!!!Can not close Player({player_id}) in game {game_id} connection by timeout\n')
+                self.explorer.logger.error(f'Can not close Player({player_id}) in game {game_id} connection by timeout')
             else:
-                self.logger.info(f'!!!Player({player_id}) in game {game_id} was closed by inactivity')
+                self.explorer.logger.trace(f'Player({player_id}) in game {game_id} was closed by inactivity')
 
-        task = asyncio.create_task(self._create_timeout_task(self.close, TURN_TIMEOUT, [game_id, player_id]))
+        task = asyncio.create_task(self._create_timeout_task(callback, timeout, [game_id, player_id, 'Turn timeout']))
         task.add_done_callback(log_timeout)
         return task
 
-    async def _create_timeout_task(callback: typing.Callable, timeout: int, args: list) -> None:
+    async def _create_timeout_task(self, callback: typing.Callable, timeout: int, args: list) -> None:
                 await asyncio.sleep(timeout)
                 return await callback(*args)
     
-    async def refresh_connection(self, game_id, player_id) -> None:
+    async def refresh_connection(self, game_id: int, player_id: int) -> None:
         self.connections[game_id][player_id].last_response = time.time()
 
     

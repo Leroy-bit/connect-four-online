@@ -8,6 +8,8 @@ BOT_TOKEN = ""
 BASE_URL = "https://example.com"
 WEBHOOK_PATH = '/' + BOT_TOKEN 
 MINI_APP_NAME = ''
-SSL_CERT = '' # leave empty if http
-SSL_PRIVATE_KEY = '' # leave empty if http
+SSL_CERT = '' # leave empty if you want run server as http
+SSL_PRIVATE_KEY = '' # leave empty if you want run server as http
+
+LOG_LEVEL = 'INFO' # TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL
        

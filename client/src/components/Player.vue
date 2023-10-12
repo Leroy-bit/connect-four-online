@@ -14,6 +14,9 @@
         width: 65%;
         white-space: nowrap;
     }
+    .downbar {
+        font-size: 18px;
+    }
     .upbar::before, .downbar::after {
         content: '';
         position: absolute;

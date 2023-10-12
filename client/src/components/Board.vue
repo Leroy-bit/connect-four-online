@@ -30,12 +30,12 @@
         width: 100%;
         aspect-ratio: 1 / 1;
         border-radius: 50%;
-        /* background-color: rgb(184, 129, 129); */
-        background-color: var(--decline-color);
+        background-color: rgb(233, 73, 73);
+        /* background-color: var(--decline-color); */
     }
     .my-chip {
-        /* background-color: rgb(129, 184, 129); */
-        background-color: var(--accept-color);
+        background-color: rgb(100, 245, 100);
+        /* background-color: var(--accept-color); */
     }
 </style>
 
