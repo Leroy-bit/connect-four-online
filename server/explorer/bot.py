@@ -14,7 +14,7 @@ class BotAccessor(BaseEntity):
     def setup(self) -> None:
         self.dp = Dispatcher()
         self.dp.startup.register(self.on_startup)
-        self.bot = Bot(token=config.BOT_TOKEN)
+        self.bot = Bot(token=config.BOT_TOKEN, parse_mode='Markdown')
         webhook_handler = SimpleRequestHandler(self.dp, bot=self.bot, secret_token=config.WEBHOOK_SECRET_TOKEN)
         webhook_handler.register(self.explorer.app, path=config.WEBHOOK_PATH)
         setup_application(self.explorer.app, self.dp, bot=self.bot)
@@ -51,28 +51,16 @@ class BotAccessor(BaseEntity):
             me = await self.bot.me()
             await query.answer(
                 results=[types.InlineQueryResultArticle(
-                    id='start',
-                    title='Connect Four',
+                    id='start_game',
+                    title='PLAY',
                     input_message_content=types.InputTextMessageContent(
-                        message_text='Start the game'
+                        message_text=f'[PLAY CONNECT FOUR](https://t.me/{me.username}/{config.MINI_APP_NAME}?game_id={query.from_user.id}',
                     ),
-                    reply_markup=types.InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                types.InlineKeyboardButton(
-                                    text='PLAY',
-                                    url='https://t.me/' + me.username + '/' + config.MINI_APP_NAME
-                                )
-                            ]
-                        ]
+                    description='Start playing Connect Four',
+                    thumbnail_url='https://telegra.ph/file/5bc2461d9ff7aee8c9929.png',
+                    thumb_width=393,
+                    thumbnail_height=393
                     )
-                ), types.InlineQueryResultArticle(
-                    id='start2',
-                    title='Connect Four',
-                    input_message_content=types.InputTextMessageContent(
-                        message_text='Start the game',
-                        entities=[types.MessageEntity(type='text_link', offset=0, length=14, url='https://t.me/' + me.username + '/' + config.MINI_APP_NAME)]
-                    ))
                     ],
                 cache_time=0
             )
