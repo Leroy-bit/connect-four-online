@@ -1,0 +1,25 @@
+{
+    "screens": {
+        "waiting": "Waiting for opponent",
+        "chatError": "You can play only in private chat"
+    },
+    "popups": {
+        "text": {
+            "opponentDisconnected": "Opponent disconnected",
+            "opponentRematch": "Opponent wants to rematch",
+            "youDisconnected": "You have been disconnected",
+            "waitingOpponentConfirmation": "Waiting for opponent confirmation"
+        },
+        "buttons": {
+            "rematch": "Rematch",
+            "close": "Close",
+            "accept": "Accept",
+            "decline": "Decline",
+            "disconnect": "Disconnect"
+        }
+
+    },
+    "win": "You win",
+    "lose": "You lose",
+    "you": "You"
+}

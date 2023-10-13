@@ -6,7 +6,7 @@
       </Player> 
       <Board v-show="game_started" @makeTurn="makeTurn" ref="board"/>
       <Player v-show="game_started" :id="me.id" :name="me.name" :bar_type="true" :isCurrentPlayer="me.id == currentPlayerId">
-        YOU
+        {{ this.$t('you') }}
       </Player>
 </template>
 
@@ -82,7 +82,7 @@ export default {
         window.Telegram.WebApp.close()
         } 
       else if (id == 'rematch') {
-        this.$refs.popupManager.openPopup('Waiting for opponent confirmation...', [])
+        this.$refs.popupManager.openPopup(this.$t('popups.text.waitingOpponentConfirmation') + '...', [])
         this.sendEvent(this.clientEvents.REMATCH, {})
         } 
       else if (id == 'rematch_accept') {
@@ -108,7 +108,7 @@ export default {
         this.sendEvent(this.clientEvents.DISCONNECT, {})
       }
       
-      this.$refs.screenManager.showScreen('Waiting for opponent', 'waiting')
+      this.$refs.screenManager.showScreen(this.$t("screens.waiting"), 'waiting')
 
       socket.onmessage = (message) => {
       let data = JSON.parse(message.data)
@@ -134,28 +134,28 @@ export default {
       this.$refs.board.pushToBoard(data.data.player_id, data.data.column)
       }
     else if (data.event == this.serverEvents.PLAYER_WIN) {
-      let text = data.data.player_id == this.me.id ? 'You win' : 'You lose'
+      let text = data.data.player_id == this.me.id ? this.$t("win") : this.$t("lose")
       setTimeout(() => {
-        this.$refs.popupManager.openPopup(text, [{id: 'rematch', text: 'Rematch', type: true}, {id: 'disconnect', text: 'Disconnect', type: false}])
+        this.$refs.popupManager.openPopup(text, [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'disconnect', text: this.$t('popups.buttons.disconnect'), type: false}])
       }, 500)
       }
     else if (data.event == this.serverEvents.NEXT_PLAYER) { 
       this.nextPlayer(data.data.current_player_id)
       }
     else if (data.event == this.serverEvents.PLAYER_DISCONNECTED) {
-      this.$refs.popupManager.openPopup('Opponent disconnected', [{id: 'close', text: 'Close', type: true}])
+      this.$refs.popupManager.openPopup(this.$t('popups.text.opponentDisconnected'), [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
       }
     else if (data.event == this.serverEvents.REMATCH_REQUEST) {
-      this.$refs.popupManager.openPopup('Opponent wants to rematch', [{id: 'rematch', text: 'Accept', type: true}, {id: 'close', text: 'Decline', type: false}])
+      this.$refs.popupManager.openPopup(this.$t('popups.text.opponentRematch'), [{id: 'rematch', text: this.$t('popups.buttons.accept'), type: true}, {id: 'close', text: this.$t('popups.buttons.decline'), type: false}])
       }
     else if (data.event == this.serverEvents.DISCONNECTED) {
       let reason = data.data.reason
-      this.$refs.popupManager.openPopup('You have been disconnected: ' + reason, [{id: 'close', text: 'Close', type: true}])
+      this.$refs.popupManager.openPopup(this.$t('popups.text.youDisconnected') + ': ' + reason, [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
       }
     }
     }
     else {
-      this.$refs.screenManager.showScreen('You can play only in private chat', 'error')
+      this.$refs.screenManager.showScreen(this.$t("screens.chatError"), 'error')
     }
 
     

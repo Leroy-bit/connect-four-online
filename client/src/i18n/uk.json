@@ -1,0 +1,25 @@
+{
+    "screens": {
+        "waiting": "Очікування суперника",
+        "chatError": "Ви можете грати тільки в приватному чаті"
+    },
+    "popups": {
+        "text": {
+            "opponentDisconnected": "Суперник відключився",
+            "opponentRematch": "Суперник хоче зіграти ще раз",
+            "youDisconnected": "Вас було відключено",
+            "waitingOpponentConfirmation": "Очікування підтвердження від суперника"
+        },
+        "buttons": {
+            "rematch": "Реванш",
+            "close": "Закрити",
+            "accept": "Прийняти",
+            "decline": "Відхилити",
+            "disconnect": "Відключитися"
+        }
+
+    },
+    "win": "Ви виграли",
+    "lose": "Ви програли",
+    "you": "Ви"
+}
