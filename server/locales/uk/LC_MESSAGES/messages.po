@@ -1,0 +1,47 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2023-10-14 18:18+0300\n"
+"PO-Revision-Date: 2023-10-13 22:30+0300\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: uk\n"
+"Language-Team: uk <LL@li.org>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.1\n"
+
+#: explorer/bot.py:59
+msgid "To play click the button below, and select chat in which you want to play."
+msgstr ""
+"Щоб почати гру натисніть на кнопку нижче та оберіть чат в якому ви хочете"
+" грати."
+
+#: explorer/bot.py:63
+msgid "Select Chat"
+msgstr "Обрати Чат"
+
+#: explorer/bot.py:72
+msgid ""
+"This is a bot created to play the Connect Four game in Mini App. To start"
+" playing with friend send /start and follow instructions."
+msgstr ""
+"Цей бот створений для гри в Connect Four(Чотири в ряд) в Mini App. Щоб "
+"почати грати надішліть команду /start і слідуйте інструкціям."
+
+#: explorer/bot.py:81
+msgid "Play"
+msgstr "Грати"
+
+#: explorer/bot.py:85
+msgid "Start playing Connect Four"
+msgstr "Почати грати в Чотири в ряд"
+
+
+msgid "Play Connect Four"
+msgstr "Грати в Чотири в ряд"
+

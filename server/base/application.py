@@ -6,6 +6,16 @@ class Application(web.Application):
 
 
 class Request(web.Request):
+    '''
+    Custom request class.
+
+    Attributes:
+        app: Application instance.
+        user_id: User ID.
+        game_id: Game ID.
+        user_name: User name.
+    '''
+
     user_id: int
     game_id: int
     user_name: str
@@ -15,6 +25,13 @@ class Request(web.Request):
         return super().app  # type: ignore
     
 class View(web.View):
+    '''Custom view class.
+
+    Attributes:
+        request: Request instance.
+        app: Application instance.
+        explorer: Explorer instance.
+    '''
     @property
     def request(self) -> Request:
         return super().request  # type: ignore

@@ -9,6 +9,21 @@ if typing.TYPE_CHECKING:
     from base.application import Application
 
 class Explorer:
+    '''
+    Explorer is a class that provides access to all the components of the application from any place in program.
+    
+    Attributes:
+        app: Application instance.
+        game_accessor: GameAccessor instance.
+        ws: WebSocketAccessor instance.
+        ws_manager: WebSocketManager instance.
+        bot_accessor: BotAccessor instance.
+        logger: Logger instance.
+
+    Initialization arguments:
+        app: Application instance.
+        logger: Logger instance.
+    '''
     def __init__(self, app: 'Application', logger: Logger):
         self.app = app
         self.game_accessor: GameAccessor = GameAccessor(self)

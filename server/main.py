@@ -7,7 +7,7 @@ from core.routes import setup_routes, setup_middlewares
 from explorer import Explorer
 import config
 
-async def on_startup(app: Application):
+async def on_startup(app: Application) -> None:
     pass
 
 def create_app() -> Application:
