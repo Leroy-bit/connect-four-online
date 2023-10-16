@@ -17,7 +17,11 @@ class WebSocketManager(BaseEntity):
     
     async def on_user_disconnect(self, game_id: int, user_id: int) -> None:
         '''Do some things when a user disconnects.'''
-        self.explorer.logger.trace(f'Player {user_id} disconnected from game {game_id}')
-        await self.explorer.ws.broadcast(game_id, Event(ServerEvents.PLAYER_DISCONNECTED, {'player_id': user_id}), [user_id])
+        await self.explorer.ws.broadcast(
+            game_id, 
+            Event(ServerEvents.PLAYER_DISCONNECTED, {'player_id': user_id}), 
+            [user_id]
+        )
         await self.explorer.game_accessor.closeGame(game_id)
+        self.explorer.logger.trace(f'Player {user_id} disconnected from game {game_id}')
     

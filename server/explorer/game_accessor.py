@@ -50,20 +50,24 @@ class GameAccessor(BaseEntity):
     GAMES: dict[int, Game] = {}
     
     async def checkIfGameExists(self, game_id: int) -> bool:
-        '''Checks if a game exists.'''
+        '''Checks if a game exists. Returns True if game exists.'''
         return game_id in self.GAMES
     
     async def checkIfGameStarted(self, game_id: int) -> bool:
-        '''Checks if a game has started.'''
+        '''Checks if a game has started. Returns True if game has started.'''
         return self.GAMES[game_id].started
     
     async def checkIfPlayerIsCurrent(self, game_id: int, player_id: int) -> bool:
-        '''Checks if a player is the current player.'''
+        '''Checks if a player is the current player. Returns True if player is the current player.'''
         return self.GAMES[game_id].current_player_id == player_id
     
     async def checkIfPlayerInGame(self, game_id: int, player_id: int) -> bool:
-        '''Checks if a player is in a game.'''
+        '''Checks if a player is in a game. Returns True if player is in game.'''
         return player_id in self.GAMES[game_id].players.keys()
+    
+    async def checkIfPlayersCountIsEnough(self, game_id: int) -> bool:
+        '''Checks if there are enough players in a game. Returns True if there are enough players.'''
+        return len(self.GAMES[game_id].players) >= 2
 
     async def createGame(self, game_id: int, player_id: int, user_name: str) -> None:
         '''Create a new game.'''
@@ -82,19 +86,19 @@ class GameAccessor(BaseEntity):
         for _ in range(self.GAMES[game_id].boardColumns):
             self.GAMES[game_id].board.append([])
         self.GAMES[game_id].current_player_id = random.choice(list(self.GAMES[game_id].players.keys()))
-        await self.explorer.ws.broadcast(game_id, Event(ServerEvents.GAME_STARTED, {'current_player_id': self.GAMES[game_id].current_player_id}))
+        await self.explorer.ws.cancel_game_timeout_tasks(game_id)
+        await self.explorer.ws.create_turn_timeout_task(game_id, self.GAMES[game_id].current_player_id)
+        await self.explorer.ws.broadcast(
+            game_id, 
+            Event(ServerEvents.GAME_STARTED, {'current_player_id': self.GAMES[game_id].current_player_id})
+        )
 
-    async def addPlayer(self, game_id: int, player_id: int, user_name: str) -> None:
+    async def addPlayer(self, game_id: int, player_id: int, user_name: str) -> Player:
         '''Adds a player to a game.'''
-        if game_id in self.explorer.game_accessor.GAMES:
-            await self.explorer.ws.send(game_id, player_id, Event(ServerEvents.CONNECTED, {'players': (await self.explorer.game_accessor.getAllPlayers(game_id))}))
-            player = Player(player_id, user_name)
-            self.GAMES[game_id].players[player_id] = player
-            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.PLAYER_JOINED, asdict(player)), [player_id])
-            await self.startGame(game_id)
-        else:
-            await self.explorer.ws.send(game_id, player_id, Event(ServerEvents.CONNECTED, {}))
-            await self.createGame(game_id, player_id, user_name)
+        player = Player(player_id, user_name)
+        self.GAMES[game_id].players[player_id] = player
+        return player
+            
     
     async def checkWin(self, board: list[list[int]], columns: int, rows: int) -> int:
         '''Checks the board for a winning combination.'''
@@ -158,7 +162,10 @@ class GameAccessor(BaseEntity):
         next_player_id = players_ids[players_ids.index(self.GAMES[game_id].current_player_id) - 1]
         self.GAMES[game_id].current_player_id = next_player_id
         await self.explorer.ws.create_turn_timeout_task(game_id, next_player_id)
-        await self.explorer.ws.broadcast(game_id, Event(ServerEvents.NEXT_PLAYER, {'current_player_id': next_player_id}))
+        await self.explorer.ws.broadcast(
+            game_id, 
+            Event(ServerEvents.NEXT_PLAYER, {'current_player_id': next_player_id})
+        )
 
     async def makeTurn(self, game_id: int, player_id: int, column: int = None) -> None:
         '''Makes a turn.'''
@@ -173,11 +180,18 @@ class GameAccessor(BaseEntity):
         
         if len(self.GAMES[game_id].board[column]) < self.GAMES[game_id].boardRows: # Check if move is valid.
             self.GAMES[game_id].board[column].append(player_id)
-            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.MAKED_TURN, {'player_id': player_id, 'column': column}), [player_id])  
-            await self.explorer.ws.cancel_turn_timeout_task(game_id, self.GAMES[game_id].current_player_id)
+            await self.explorer.ws.broadcast(
+                game_id, 
+                Event(ServerEvents.MAKED_TURN, {'player_id': player_id, 'column': column}), 
+                [player_id]
+            )  
+            await self.explorer.ws.cancel_timeout_task(game_id, self.GAMES[game_id].current_player_id)
             winner = await self.checkWin(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             if winner:
-                await self.explorer.ws.broadcast(game_id, Event(ServerEvents.PLAYER_WIN, {'player_id': winner}))
+                await self.explorer.ws.broadcast(
+                    game_id, 
+                    Event(ServerEvents.PLAYER_WIN, {'player_id': winner})
+                )
                 self.GAMES[game_id].started = False
             else:
                 await self.nextPlayer(game_id)
@@ -193,12 +207,12 @@ class GameAccessor(BaseEntity):
             self.GAMES[game_id].rematch = False
         else:
             self.GAMES[game_id].rematch = True
+            await self.explorer.ws.create_rematch_timeout_task(game_id, player_id)
             await self.explorer.ws.broadcast(game_id, Event(ServerEvents.REMATCH_REQUEST, {}), [player_id])
-
         
     async def closeGame(self, game_id: int) -> None:
         '''Closes a game.'''
-        if not self.GAMES.get(game_id):
+        if not (await self.checkIfGameExists(game_id)):
             return
         del self.GAMES[game_id]
         await self.explorer.ws.close_all(game_id)

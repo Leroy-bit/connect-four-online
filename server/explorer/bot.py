@@ -18,7 +18,6 @@ class BotAccessor(BaseEntity):
         self.dp = Dispatcher()
         self.i18n = I18n(path=os.path.join(config.BASE_DIR, 'server', 'locales'), default_locale='en', domain='messages')
         self._ = self.i18n.gettext
-        self._locales = self.i18n.locales
         self.dp.startup.register(self.on_startup)
         self.bot = Bot(token=config.BOT_TOKEN, parse_mode='Markdown')
         webhook_handler = SimpleRequestHandler(self.dp, bot=self.bot, secret_token=config.WEBHOOK_SECRET_TOKEN)
@@ -41,20 +40,31 @@ class BotAccessor(BaseEntity):
 
         @router.message(filters.CommandStart())
         async def start(message: types.Message) -> None:
-            await message.answer(self._('To play click the button below, and select chat in which you want to play.', locale=message.from_user.language_code), reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [
-                        types.InlineKeyboardButton(
-                            text=self._('Select Chat', locale=message.from_user.language_code),
-                            switch_inline_query_chosen_chat=types.SwitchInlineQueryChosenChat(allow_user_chats=True)
-                        )
+            await message.answer(
+                self._(
+                    'To play click the button below, and select chat in which you want to play.', 
+                    locale=message.from_user.language_code
+                ), 
+                reply_markup=types.InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            types.InlineKeyboardButton(
+                                text=self._('Select Chat', locale=message.from_user.language_code),
+                                switch_inline_query_chosen_chat=types.SwitchInlineQueryChosenChat(allow_user_chats=True)
+                            )
+                        ]
                     ]
-                ]
-            ))
+                )
+            )
 
         @router.message(filters.Command(commands=['help']))
         async def help(message: types.Message) -> None:
-            await message.answer(self._('This is a bot created to play the Connect Four game in Mini App. To start playing with friend send /start and follow instructions.', locale=message.from_user.language_code))
+            await message.answer(
+                self._(
+                    'This is a bot created to play the Connect Four game in Mini App. To start playing with friend send /start and follow instructions.', 
+                    locale=message.from_user.language_code
+                )
+            )
         
         @router.inline_query()
         async def inline_query(query: types.InlineQuery) -> None:
