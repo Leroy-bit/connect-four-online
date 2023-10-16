@@ -54,7 +54,9 @@
         },
         methods: {
             makeTurn(column) {
+                if (this.board[column].length < this.rows) {
                     this.$emit('makeTurn', column)
+                }
             },
             pushToBoard(user_id, column) {
                 if (this.board[column].length < this.rows) {

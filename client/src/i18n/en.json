@@ -21,5 +21,6 @@
     },
     "win": "You win",
     "lose": "You lose",
+    "draw": "Draw",
     "you": "You"
 }
