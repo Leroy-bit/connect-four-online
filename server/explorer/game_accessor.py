@@ -156,6 +156,13 @@ class GameAccessor(BaseEntity):
                         return board[column][row]
         
         return False
+    
+    async def checkDraw(self, board: list[list[int]], columns: int, rows: int) -> bool:
+        '''Checks the board for a draw.'''
+        for column in range(columns):
+            if len(board[column]) < rows:
+                return False
+        return True
 
     async def nextPlayer(self, game_id: int) -> None:
         players_ids = list(self.GAMES[game_id].players.keys())
@@ -187,10 +194,17 @@ class GameAccessor(BaseEntity):
             )  
             await self.explorer.ws.cancel_timeout_task(game_id, self.GAMES[game_id].current_player_id)
             winner = await self.checkWin(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
+            draw = await self.checkDraw(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             if winner:
                 await self.explorer.ws.broadcast(
                     game_id, 
                     Event(ServerEvents.PLAYER_WIN, {'player_id': winner})
+                )
+                self.GAMES[game_id].started = False
+            elif draw:
+                await self.explorer.ws.broadcast(
+                    game_id, 
+                    Event(ServerEvents.DRAW, {})
                 )
                 self.GAMES[game_id].started = False
             else:
