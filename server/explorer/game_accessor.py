@@ -200,6 +200,7 @@ class GameAccessor(BaseEntity):
                     Event(ServerEvents.PLAYER_WIN, {'player_id': winner})
                 )
                 self.GAMES[game_id].started = False
+                await self.explorer.ws.createRematchTimeoutTask(game_id, winner)
             elif draw:
                 await self.explorer.ws.broadcast(
                     game_id, 

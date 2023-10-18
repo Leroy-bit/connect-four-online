@@ -8,7 +8,7 @@ import typing
 if typing.TYPE_CHECKING:
     from base.application import Request
 
-TURN_TIMEOUT: int = 20
+TURN_TIMEOUT: int = 40
 WAITING_FOR_PLAYER_TIMEOUT: int = 45
 REMATCH_TIMEOUT: int = 30
 
@@ -110,7 +110,10 @@ class WebSocketAccessor(BaseEntity):
             return
         if reason:
             await self.explorer.ws.send(game_id, player_id, Event(ServerEvents.DISCONNECTED, {'reason': reason}))
-        await self.broadcast(game_id, Event('PLAYER_DISCONNECTED', {'player_id': player_id}), [player_id])
+        eventData = {'player_id': player_id}
+        if reason:
+            eventData['reason'] = reason
+        await self.broadcast(game_id, Event('PLAYER_DISCONNECTED', eventData), [player_id])
         await self._close(game_id, player_id)
 
     async def closeAll(self, game_id: int, reason: str | None = None) -> None:
@@ -167,6 +170,14 @@ class WebSocketAccessor(BaseEntity):
                 continue
             tasks.append(self.send(game_id, user_id, event))
         await asyncio.gather(*tasks)
+
+    async def isClosed(self, game_id: int, player_id: int) -> bool:
+        '''Check if connection is closed.'''
+        if not self.connections.get(game_id):
+            return True
+        if not self.connections[game_id].get(player_id):
+            return True
+        return self.connections[game_id][player_id].ws.closed
 
     async def createTurnTimeoutTask(self, game_id: int, player_id: int) -> None:
         '''Create turn timeout task for a connection.'''
