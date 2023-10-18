@@ -46,7 +46,6 @@ class GameAccessor(BaseEntity):
         GAMES: All games.
     '''
 
-
     GAMES: dict[int, Game] = {}
     
     async def checkIfGameExists(self, game_id: int) -> bool:
@@ -69,15 +68,15 @@ class GameAccessor(BaseEntity):
         '''Checks if there are enough players in a game. Returns True if there are enough players.'''
         return len(self.GAMES[game_id].players) >= 2
 
+    async def getAllPlayers(self, game_id: int) -> list[Player]:
+        '''Returns all players in a game.'''
+        return [asdict(player) for player in self.GAMES[game_id].players.values()]
+
     async def createGame(self, game_id: int, player_id: int, user_name: str) -> None:
         '''Create a new game.'''
         game = Game(game_id, player_id, user_name)
         self.GAMES[game.id] = game
         self.explorer.logger.trace(f'Game {game_id} created by {user_name}[{player_id}]')
-
-    async def getAllPlayers(self, game_id: int) -> list[Player]:
-        '''Returns all players in a game.'''
-        return [asdict(player) for player in self.GAMES[game_id].players.values()]
 
     async def startGame(self, game_id: int) -> None:
         '''Starts a game.'''
@@ -86,8 +85,8 @@ class GameAccessor(BaseEntity):
         for _ in range(self.GAMES[game_id].boardColumns):
             self.GAMES[game_id].board.append([])
         self.GAMES[game_id].current_player_id = random.choice(list(self.GAMES[game_id].players.keys()))
-        await self.explorer.ws.cancel_game_timeout_tasks(game_id)
-        await self.explorer.ws.create_turn_timeout_task(game_id, self.GAMES[game_id].current_player_id)
+        await self.explorer.ws.cancelGameTimeoutTasks(game_id)
+        await self.explorer.ws.createTurnTimeoutTask(game_id, self.GAMES[game_id].current_player_id)
         await self.explorer.ws.broadcast(
             game_id, 
             Event(ServerEvents.GAME_STARTED, {'current_player_id': self.GAMES[game_id].current_player_id})
@@ -99,7 +98,6 @@ class GameAccessor(BaseEntity):
         self.GAMES[game_id].players[player_id] = player
         return player
             
-    
     async def checkWin(self, board: list[list[int]], columns: int, rows: int) -> int:
         '''Checks the board for a winning combination.'''
         # Check for horizontal win
@@ -165,10 +163,11 @@ class GameAccessor(BaseEntity):
         return True
 
     async def nextPlayer(self, game_id: int) -> None:
+        '''Switches to the next player.'''
         players_ids = list(self.GAMES[game_id].players.keys())
         next_player_id = players_ids[players_ids.index(self.GAMES[game_id].current_player_id) - 1]
         self.GAMES[game_id].current_player_id = next_player_id
-        await self.explorer.ws.create_turn_timeout_task(game_id, next_player_id)
+        await self.explorer.ws.createTurnTimeoutTask(game_id, next_player_id)
         await self.explorer.ws.broadcast(
             game_id, 
             Event(ServerEvents.NEXT_PLAYER, {'current_player_id': next_player_id})
@@ -192,7 +191,7 @@ class GameAccessor(BaseEntity):
                 Event(ServerEvents.MAKED_TURN, {'player_id': player_id, 'column': column}), 
                 [player_id]
             )  
-            await self.explorer.ws.cancel_timeout_task(game_id, self.GAMES[game_id].current_player_id)
+            await self.explorer.ws.cancelTimeoutTask(game_id, self.GAMES[game_id].current_player_id)
             winner = await self.checkWin(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             draw = await self.checkDraw(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             if winner:
@@ -221,7 +220,7 @@ class GameAccessor(BaseEntity):
             self.GAMES[game_id].rematch = False
         else:
             self.GAMES[game_id].rematch = True
-            await self.explorer.ws.create_rematch_timeout_task(game_id, player_id)
+            await self.explorer.ws.createRematchTimeoutTask(game_id, player_id)
             await self.explorer.ws.broadcast(game_id, Event(ServerEvents.REMATCH_REQUEST, {}), [player_id])
         
     async def closeGame(self, game_id: int) -> None:
@@ -229,5 +228,5 @@ class GameAccessor(BaseEntity):
         if not (await self.checkIfGameExists(game_id)):
             return
         del self.GAMES[game_id]
-        await self.explorer.ws.close_all(game_id)
+        await self.explorer.ws.closeAll(game_id)
         

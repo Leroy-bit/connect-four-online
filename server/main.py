@@ -3,20 +3,21 @@ from loguru import logger
 import sys
 import ssl
 from base.application import Application
-from core.routes import setup_routes, setup_middlewares
+from core.setup import setup_routes, setup_middlewares
 from explorer import Explorer
 import config
 
-async def on_startup(app: Application) -> None:
+async def onStartup(app: Application) -> None:
     pass
 
 def create_app() -> Application:
-    app = Application()
     _logger = logger
     _logger.remove()
     _logger.add(sys.stderr, level=config.LOG_LEVEL)
+
+    app = Application()
     app.explorer = Explorer(app, _logger)
-    app.on_startup.append(on_startup)
+    app.on_startup.append(onStartup)
     app.explorer.bot_accessor.setup()
     setup_routes(app)
     setup_middlewares(app)

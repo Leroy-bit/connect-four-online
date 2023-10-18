@@ -8,9 +8,9 @@ import typing
 if typing.TYPE_CHECKING:
     from base.application import Request
 
-TURN_TIMEOUT = 20
-WAITING_FOR_PLAYER_TIMEOUT = 45
-REMATCH_TIMEOUT = 30
+TURN_TIMEOUT: int = 20
+WAITING_FOR_PLAYER_TIMEOUT: int = 45
+REMATCH_TIMEOUT: int = 30
 
 class ServerEvents:
     MAKED_TURN = 'MAKED_TURN'
@@ -28,6 +28,11 @@ class ClientEvents:
     DISCONNECT = 'DISCONNECT'
     MAKE_TURN = 'MAKE_TURN'
     REMATCH = 'REMATCH'
+
+class DisconnectReasons:
+    REMATCH_TIMEOUT = 'REMATCH_TIMEOUT'
+    WAITING_FOR_PLAYER_TIMEOUT = 'WAITING_FOR_PLAYER_TIMEOUT'
+    TURN_TIMEOUT = 'TURN_TIMEOUT'
 
 @dataclass
 class Event:
@@ -49,12 +54,10 @@ class Connection:
     
     Attributes:
         ws: WebSocketResponse instance.
-        last_response: Time of last response.
         timeout_task: asyncio.Task instance.
         close_callback: Callback function that running on connection close.
     '''
     ws: WebSocketResponse
-    last_response: float
     timeout_task: asyncio.Task = None
     close_callback: typing.Callable = None
 
@@ -75,11 +78,12 @@ class WebSocketAccessor(BaseEntity):
         game_id = request.game_id
         user_id = request.user_id
         user_name = request.user_name
+        
         if (await self.explorer.game_accessor.checkIfGameExists(game_id)):
             if not (await self.explorer.game_accessor.checkIfPlayerInGame(game_id, user_id)) \
             and not (await self.explorer.game_accessor.checkIfPlayersCountIsEnough(game_id)):
                 
-                self.connections[game_id][user_id] = Connection(ws, time.time())
+                self.connections[game_id][user_id] = Connection(ws)
                 await self.explorer.ws.send(
                     game_id, 
                     user_id, 
@@ -92,9 +96,10 @@ class WebSocketAccessor(BaseEntity):
                 await self.broadcast(game_id, Event(ServerEvents.PLAYER_JOINED, asdict(player)), [user_id])
                 await self.explorer.game_accessor.startGame(game_id)
         else:
-            self.connections[game_id] = {user_id: Connection(ws, time.time())}
+            self.connections[game_id] = {user_id: Connection(ws)}
             await self.send(game_id, user_id, Event(ServerEvents.CONNECTED, {}))
             await self.explorer.game_accessor.createGame(game_id, user_id, user_name)
+            await self.createWaitingForPlayerTimeoutTask(game_id, user_id)
         self.explorer.logger.trace(f'Player {user_name}[{user_id}] openned connection on game: {game_id}')
         
     async def close(self, game_id: int, player_id: int, reason: str | None = None) -> None:
@@ -108,7 +113,7 @@ class WebSocketAccessor(BaseEntity):
         await self.broadcast(game_id, Event('PLAYER_DISCONNECTED', {'player_id': player_id}), [player_id])
         await self._close(game_id, player_id)
 
-    async def close_all(self, game_id: int, reason: str | None = None) -> None:
+    async def closeAll(self, game_id: int, reason: str | None = None) -> None:
         '''Close all connections in a game.'''
         if not self.connections.get(game_id):
             return
@@ -125,12 +130,13 @@ class WebSocketAccessor(BaseEntity):
             await connection.close_callback(player_id)
 
         if connection.timeout_task:
+            self.explorer.logger.trace(connection.timeout_task)
             connection.timeout_task.cancel()
         
         if not connection.ws.closed:
             await connection.ws.close()
 
-    async def read_stream(self, game_id: int, player_id: int) -> typing.AsyncIterable[Event]:
+    async def readStream(self, game_id: int, player_id: int) -> typing.AsyncIterable[Event]:
         '''Read stream from a connection. Return iterator that iterate Event instance.'''
         if not self.connections.get(game_id):
             return
@@ -138,7 +144,6 @@ class WebSocketAccessor(BaseEntity):
             return
 
         async for msg in self.connections[game_id][player_id].ws:
-            await self.refresh_connection(game_id, player_id)
             data = msg.json()
             if 'event' in data and 'data' in data:
                 yield Event(data['event'], data['data'])
@@ -163,50 +168,50 @@ class WebSocketAccessor(BaseEntity):
             tasks.append(self.send(game_id, user_id, event))
         await asyncio.gather(*tasks)
 
-    async def create_turn_timeout_task(self, game_id: int, player_id: int) -> None:
+    async def createTurnTimeoutTask(self, game_id: int, player_id: int) -> None:
         '''Create turn timeout task for a connection.'''
         if not self.connections.get(game_id):
             return
         if not self.connections[game_id].get(player_id):
             return
-        await self.cancel_timeout_task(game_id, player_id)
-        self.connections[game_id][player_id].timeout_task = (await self.create_timeout_task(
+        await self.cancelTimeoutTask(game_id, player_id)
+        self.connections[game_id][player_id].timeout_task = (await self.createTimeoutTask(
             TURN_TIMEOUT, 
             self.close, 
             game_id=game_id, 
             player_id=player_id, 
-            reason='Turn timeout'
+            reason=DisconnectReasons.TURN_TIMEOUT
         ))
 
-    async def create_waiting_for_player_timeout_task(self, game_id: int, player_id: int) -> None:
+    async def createWaitingForPlayerTimeoutTask(self, game_id: int, player_id: int) -> None:
         '''Create waiting for player timeout task for a connection.'''
         if not self.connections.get(game_id):
             return
         if not self.connections[game_id].get(player_id):
             return
-        await self.cancel_timeout_task(game_id, player_id)
-        self.connections[game_id][player_id].timeout_task = (await self.create_timeout_task(
+        await self.cancelTimeoutTask(game_id, player_id)
+        self.connections[game_id][player_id].timeout_task = (await self.createTimeoutTask(
             WAITING_FOR_PLAYER_TIMEOUT, 
-            self.close_all, 
+            self.closeAll, 
             game_id=game_id,
-            reason='Waiting for player timeout'
+            reason=DisconnectReasons.WAITING_FOR_PLAYER_TIMEOUT
         ))
 
-    async def create_rematch_timeout_task(self, game_id: int, player_id: int) -> None:
+    async def createRematchTimeoutTask(self, game_id: int, player_id: int) -> None:
         '''Create rematch timeout task for a connection.'''
         if not self.connections.get(game_id):
             return
         if not self.connections[game_id].get(player_id):
             return
-        await self.cancel_timeout_task(game_id, player_id)
-        self.connections[game_id][player_id].timeout_task = (await self.create_timeout_task(
+        await self.cancelTimeoutTask(game_id, player_id)
+        self.connections[game_id][player_id].timeout_task = (await self.createTimeoutTask(
             REMATCH_TIMEOUT, 
-            self.close_all, 
+            self.closeAll, 
             game_id=game_id,
-            reason='Rematch timeout'
-        )
-)
-    async def cancel_timeout_task(self, game_id: int, player_id: int) -> None:
+            reason=DisconnectReasons.REMATCH_TIMEOUT
+        ))
+
+    async def cancelTimeoutTask(self, game_id: int, player_id: int) -> None:
         '''Cancel turn timeout task for a connection.'''
         if not self.connections.get(game_id):
             return
@@ -215,7 +220,7 @@ class WebSocketAccessor(BaseEntity):
         if self.connections[game_id][player_id].timeout_task:
             self.connections[game_id][player_id].timeout_task.cancel()
 
-    async def cancel_game_timeout_tasks(self, game_id: int) -> None:
+    async def cancelGameTimeoutTasks(self, game_id: int) -> None:
         '''Cancel all timeout tasks in a game.'''
         if not self.connections.get(game_id):
             return
@@ -223,7 +228,7 @@ class WebSocketAccessor(BaseEntity):
             if self.connections[game_id][player_id].timeout_task:
                 self.connections[game_id][player_id].timeout_task.cancel()
 
-    async def create_timeout_task(self, timeout: int, callback: typing.Callable, **kwargs) -> None:
+    async def createTimeoutTask(self, timeout: int, callback: typing.Callable, **kwargs) -> None:
         '''Create timeout task.'''
         def log_timeout(result: asyncio.Task):
             try:
@@ -237,18 +242,14 @@ class WebSocketAccessor(BaseEntity):
             else:
                 self.explorer.logger.trace(f'Player({kwargs.get("player_id")}) in game {kwargs.get("game_id")} was closed by inactivity')
 
-        task = asyncio.create_task(self._create_timeout_task(callback, timeout, **kwargs))
+        task = asyncio.create_task(self._createTimeoutTask(callback, timeout, **kwargs))
         task.add_done_callback(log_timeout)
         return task
 
-    async def _create_timeout_task(self, callback: typing.Callable, timeout: int, **kwargs) -> None:
+    async def _createTimeoutTask(self, callback: typing.Callable, timeout: int, **kwargs) -> None:
         '''Low level create timeout task.'''
         await asyncio.sleep(timeout)
         return await callback(**kwargs)
-    
-    async def refresh_connection(self, game_id: int, player_id: int) -> None:
-        '''Refresh connection. Update last_response time.'''
-        self.connections[game_id][player_id].last_response = time.time()
 
     
 

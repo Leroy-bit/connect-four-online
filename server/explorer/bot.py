@@ -18,24 +18,24 @@ class BotAccessor(BaseEntity):
         self.dp = Dispatcher()
         self.i18n = I18n(path=os.path.join(config.BASE_DIR, 'server', 'locales'), default_locale='en', domain='messages')
         self._ = self.i18n.gettext
-        self.dp.startup.register(self.on_startup)
+        self.dp.startup.register(self.onStartup)
         self.bot = Bot(token=config.BOT_TOKEN, parse_mode='Markdown')
         webhook_handler = SimpleRequestHandler(self.dp, bot=self.bot, secret_token=config.WEBHOOK_SECRET_TOKEN)
         webhook_handler.register(self.explorer.app, path=config.WEBHOOK_PATH)
         setup_application(self.explorer.app, self.dp, bot=self.bot)
-        self.register_handlers()
+        self.registerHandlers()
         
-    async def setup_bot_commands(self) -> list[types.BotCommand]:
+    async def setupBotCommands(self) -> list[types.BotCommand]:
         await self.bot.set_my_commands([
             types.BotCommand(command='/start', description='Start the bot'),
             types.BotCommand(command='/help', description='Get help'),
         ])
 
-    async def on_startup(self) -> None:
+    async def onStartup(self) -> None:
         await self.bot.set_webhook(config.BASE_URL + config.WEBHOOK_PATH, secret_token=config.WEBHOOK_SECRET_TOKEN)
-        await self.setup_bot_commands()
+        await self.setupBotCommands()
 
-    def register_handlers(self) -> None:
+    def registerHandlers(self) -> None:
         router = Router()
 
         @router.message(filters.CommandStart())
@@ -88,7 +88,7 @@ class BotAccessor(BaseEntity):
 
         self.dp.include_router(router)
 
-    async def check_user_data(self, initData: str) -> WebAppInitData:
+    async def checkUserData(self, initData: str) -> WebAppInitData:
         try:
             data = safe_parse_webapp_init_data(config.BOT_TOKEN, initData)
             return data
