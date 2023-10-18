@@ -1,5 +1,26 @@
-test
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# Editor directories and files
 .vscode
 __pycache__
 node_modules
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+test
 dist
+dist-ssr
+*.local
