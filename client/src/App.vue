@@ -1,11 +1,11 @@
 <template>
       <ScreenManager ref="screenManager"></ScreenManager>
       <PopupManager @popupButtonClicked="onPopupButtonClicked" ref="popupManager" />
-      <Player v-show="game_started" :id="opponent.id" :name="opponent.name" :bar_type="false" :isCurrentPlayer="opponent.id == currentPlayerId">
+      <Player v-show="gameStarted" :id="opponent.id" :name="opponent.name" :barType="false" :isCurrentPlayer="opponent.id == currentPlayerId">
           {{opponent.name}}
       </Player> 
-      <Board v-show="game_started" @makeTurn="makeTurn" ref="board"/>
-      <Player v-show="game_started" :id="me.id" :name="me.name" :bar_type="true" :isCurrentPlayer="me.id == currentPlayerId">
+      <Board v-show="gameStarted" @makeTurn="makeTurn" ref="board"/>
+      <Player v-show="gameStarted" :id="me.id" :name="me.name" :barType="true" :isCurrentPlayer="me.id == currentPlayerId">
         {{ this.$t('you') }}
       </Player>
 </template>
@@ -16,13 +16,13 @@ import Player from './components/Player.vue'
 import ScreenManager from './components/ScreenManager.vue'
 import PopupManager from './components/PopupManager.vue'
 
-const socket_url = 'wss://' + window.location.host + ':443/ws?' + window.Telegram.WebApp.initData
-const socket = window.Telegram.WebApp.initDataUnsafe.chat_type == "private" ? new WebSocket(socket_url) : undefined
+const socketUrl = 'wss://' + window.location.host + '/ws?' + window.Telegram.WebApp.initData
+const socket = window.Telegram.WebApp.initDataUnsafe.chat_type == "private" ? new WebSocket(socketUrl) : undefined
 
 export default {
   data () {
     return {
-            me: {id: window.Telegram.WebApp.initDataUnsafe.user.id, name: window.Telegram.WebApp.initDataUnsafe.user.first_name},
+            me: window.Telegram.WebApp.initDataUnsafe.chat_type == "private" ? {id: window.Telegram.WebApp.initDataUnsafe.user.id, name: window.Telegram.WebApp.initDataUnsafe.user.first_name} : undefined,
             opponent: {},
             currentPlayerId: 1,
             serverEvents: {
@@ -42,11 +42,11 @@ export default {
                 DISCONNECT: 'DISCONNECT',
                 REMATCH: 'REMATCH'
             },
-            game_started: false,
+            gameStarted: false,
             connected: false,
             hasMoved: false,
             waitingTimeout: 44,
-            waitingTimeoutObject: undefined
+            waitingTimeoutId: undefined
 
         }
   },
@@ -76,9 +76,6 @@ export default {
       this.currentPlayerId = playerId
       this.hasMoved = false
     },
-    disconnect() {
-      window.Telegram.WebApp.close()
-    },
     onPopupButtonClicked(id) {
       if (id == 'close') {
         this.$refs.popupManager.closePopup()
@@ -91,11 +88,10 @@ export default {
       else if (id == 'rematch_accept') {
         this.sendEvent(this.clientEvents.REMATCH, {})
         this.$refs.popupManager.closePopup()
-        } 
-      else if (id == 'disconnect') {
-        this.$refs.popupManager.closePopup()
-        this.disconnect()
         }
+    },
+    disconnect() {
+      window.Telegram.WebApp.close()
     }
   },
 
@@ -123,7 +119,7 @@ export default {
           this.opponent = data.data.players[0]
         }
         else {
-          this.waitingTimeoutObject = setTimeout(() => {
+          this.waitingTimeoutId = setTimeout(() => {
             window.Telegram.WebApp.close()
           }, this.waitingTimeout * 1000)
 
@@ -132,49 +128,54 @@ export default {
       else if (data.event == this.serverEvents.PLAYER_JOINED) {
         window.Telegram.WebApp.enableClosingConfirmation()
         this.opponent = data.data
-        clearTimeout(this.waitingTimeoutObject)
-        }
+        clearTimeout(this.waitingTimeoutId)
+      }
       else if (data.event == this.serverEvents.GAME_STARTED) {
         this.$refs.screenManager.hideScreen()
         this.$refs.popupManager.closePopup()
         this.$refs.board.clearBoard()
-        this.game_started = true
+        this.gameStarted = true
         this.nextPlayer(data.data.current_player_id)
-        }
+      }
       else if (data.event == this.serverEvents.MAKED_TURN) {
         this.$refs.board.pushToBoard(data.data.player_id, data.data.column)
-        }
+      }
       else if (data.event == this.serverEvents.PLAYER_WIN) {
         let text = data.data.player_id == this.me.id ? this.$t("win") : this.$t("lose")
         setTimeout(() => {
-          this.$refs.popupManager.openPopup(text, [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'disconnect', text: this.$t('popups.buttons.disconnect'), type: false}])
+          this.$refs.popupManager.openPopup(text, [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'close', text: this.$t('popups.buttons.disconnect'), type: false}])
         }, 500)
-        }
+      }
       else if (data.event == this.serverEvents.DRAW) {
         setTimeout(() => {
-          this.$refs.popupManager.openPopup(this.$t("draw"), [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'disconnect', text: this.$t('popups.buttons.disconnect'), type: false}])
+          this.$refs.popupManager.openPopup(this.$t("draw"), [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'close', text: this.$t('popups.buttons.disconnect'), type: false}])
         }, 500)
       }
       else if (data.event == this.serverEvents.NEXT_PLAYER) { 
         this.nextPlayer(data.data.current_player_id)
-        }
+      }
       else if (data.event == this.serverEvents.PLAYER_DISCONNECTED) {
-        this.$refs.popupManager.openPopup(this.$t('popups.text.opponentDisconnected'), [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
+        if (data.data.reason) {
+          this.$refs.popupManager.openPopup(this.$t('popups.text.opponentDisconnectedReason', [data.data.reason]), [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
+
         }
+        else {
+          this.$refs.popupManager.openPopup(this.$t('popups.text.opponentDisconnected'), [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
+        }
+      }
       else if (data.event == this.serverEvents.REMATCH_REQUEST) {
         this.$refs.popupManager.openPopup(this.$t('popups.text.opponentRematch'), [{id: 'rematch', text: this.$t('popups.buttons.accept'), type: true}, {id: 'close', text: this.$t('popups.buttons.decline'), type: false}])
-        }
+      }
       else if (data.event == this.serverEvents.DISCONNECTED) {
         let reason = data.data.reason
         this.$refs.popupManager.openPopup(this.$t('popups.text.youDisconnected') + ': ' + reason, [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
-        }
       }
     }
-    else {
-      this.$refs.screenManager.showScreen(this.$t("screens.chatError"), 'error')
-    }
-
-    
+  }
+  else {
+    this.$refs.screenManager.showScreen(this.$t("screens.chatError"), 'error')
+  } 
+      
   }
 
 }

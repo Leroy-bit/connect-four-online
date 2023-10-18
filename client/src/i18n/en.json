@@ -6,6 +6,7 @@
     "popups": {
         "text": {
             "opponentDisconnected": "Opponent disconnected",
+            "opponentDisconnectedReason": "Opponent disconnected, reason: {0}",
             "opponentRematch": "Opponent wants to rematch",
             "youDisconnected": "You have been disconnected",
             "waitingOpponentConfirmation": "Waiting for opponent confirmation"

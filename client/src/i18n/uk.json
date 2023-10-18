@@ -6,6 +6,7 @@
     "popups": {
         "text": {
             "opponentDisconnected": "Суперник відключився",
+            "opponentDisconnectedReason": "Суперник було відключено, причина: {0}",
             "opponentRematch": "Суперник хоче зіграти ще раз",
             "youDisconnected": "Вас було відключено",
             "waitingOpponentConfirmation": "Очікування підтвердження від суперника"
