@@ -24,14 +24,14 @@
     width: 100%;
     max-width:  var(--max-width);
     height: var(--tg-viewport-stable-height);
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.33);
 }
 
 .popup__inner {
     width: 85%;
     height: fit-content;
     background-color: var(--tg-theme-bg-color);
-    opacity: 0.8;
+    opacity: 0.92;
     border-radius: 10px;
     padding: 10px;
     display: flex;
