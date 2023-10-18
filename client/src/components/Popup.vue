@@ -79,11 +79,3 @@
     color: var(--decline-color);
 }
 </style>
-
-<script>
-export default {
-    data() {
-        return {}
-    }
-}
-</script>

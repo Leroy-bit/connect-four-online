@@ -43,8 +43,7 @@
     export default {
         data() {
             return {
-                board: [],
-                colors: ['blue', 'red']
+                board: []
             }
         },
         created() {

@@ -1,5 +1,5 @@
 <template>
-    <span class="player-name" :class="{upbar: bar_type, downbar: !bar_type, current: isCurrentPlayer}">
+    <span class="player-name" :class="{upbar: barType, downbar: !barType, current: isCurrentPlayer}">
         <slot></slot>
     </span>
 </template>
@@ -48,7 +48,7 @@
         },
         props: {
             id: Number,
-            bar_type: Boolean,
+            barType: Boolean,
             isCurrentPlayer: Boolean
         }
     }
