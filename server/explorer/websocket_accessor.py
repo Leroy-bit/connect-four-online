@@ -133,7 +133,6 @@ class WebSocketAccessor(BaseEntity):
             await connection.close_callback(user_id)
 
         if connection.timeout_task:
-            self.explorer.logger.trace(connection.timeout_task)
             connection.timeout_task.cancel()
         
         if not connection.ws.closed:
