@@ -1,0 +1,9 @@
+- [Home](/)
+- Documentation
+  - [Server](server/README.md)
+    - [Explorer](server/explorer.md)
+    - [Base](server/base.md)
+    - [Core](server/core.md)
+    - [Localization](server/localization.md)
+  - [Client](client/README.md)
+  - [Other](other.md)
