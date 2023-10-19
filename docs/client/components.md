@@ -9,16 +9,16 @@ Component that represents a game board, and controls it.
 - `clear` - clear the board
 
 
-## Player
-Component that represents a player object, and controls it.
+## User
+Component that represents a user object, and controls it.
 
 **Properties:**
-- `id` - id of the player
-- `barType` - type of the turn bar, if true - turn bar is above the player name, otherwise - below
-- `isCurrentPlayer` - if true - turn bar is active, otherwise - inactive
+- `id` - id of the user
+- `barType` - type of the turn bar, if true - turn bar is above the user name, otherwise - below
+- `isCurrentUser` - if true - turn bar is active, otherwise - inactive
 
 **Slots:**
-- `name` - name of the player
+- `name` - name of the user
 
 
 ## Popup

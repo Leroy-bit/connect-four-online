@@ -5,7 +5,7 @@ main component that conrols all app
 
 - `me` - this(self) user Object
 - `opponent` - opponent user Object
-- `currentPlayerId` - id of current player
+- `currentUserId` - id of current user
 - `serverEvents` - server events Object
 - `clientEvents` - client events Object
 - `gameStarted` - is game started
@@ -28,8 +28,8 @@ main component that conrols all app
   - `column` - column number
 
 
-- `nextPlayer` - change current player
-  - `playerId` - id of next player
+- `nextUser` - change current user
+  - `userId` - id of next user
 
 
 - `onPopupClicked` - listener function that handle popup click

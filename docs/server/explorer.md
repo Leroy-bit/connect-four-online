@@ -18,7 +18,7 @@
 ## GameAccessor
 > class GameAccessor([BaseEntity](server/base.md#baseentity))
 
-Controls all processes related to the game mechanics and its players
+Controls all processes related to the game mechanics and its users
 
 
 ### Game
@@ -28,20 +28,20 @@ Game class that contains all game information
 **Attributes:**
 - `id` - game id
 - `started` - game status
-- `players` - list of [players](#player) in the game
+- `users` - list of [users](#user) in the game
 - `board` - [board](#board) of the game
 - `boardRows` - number of rows in the board
 - `boardColumns` - number of columns in the board
-- `current_player_id` - id of the current player
+- `current_user_id` - id of the current user
 
 
-### Player
-> class Player
+### User
+> class User
 
-Player class that contains all player information
+User class that contains all user information
 **Attributes:**
-- `id` - player id
-- `name` - player name
+- `id` - user id
+- `name` - user name
 
 
 ### GAMES
@@ -51,14 +51,14 @@ Dictionary that contains all [games](#game) in the application
 
 
 ### createGame
-> async def createGame(game_id: int, player_id: int, user_name: str)
+> async def createGame(game_id: int, user_id: int, user_name: str)
 
 Creates a new game and adds it to the GAMES dictionary
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
-- `user_name`_: str_ - player name
+- `user_id`_: int_ - user id
+- `user_name`_: str_ - user name
 
 
 ### startGame
@@ -70,15 +70,15 @@ Starts the game
 - `game_id`_: int_ - game id
 
 
-### addPlayer
-> async def addPlayer(game_id: int, player_id: int, user_name: str)
+### addUser
+> async def addUser(game_id: int, user_id: int, user_name: str)
 
-Adds a player to the game
+Adds a user to the game
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
-- `user_name`_: str_ - player name
+- `user_id`_: int_ - user id
+- `user_name`_: str_ - user name
 
 
 ### checkWin
@@ -109,23 +109,23 @@ Check if there is a draw on the board
 - `bool` - True if there is a draw, False otherwise
 
 
-### nextPlayer
-> async def nextPlayer(game_id: int)
+### nextUser
+> async def nextUser(game_id: int)
 
-Changes the current player to the next one
+Changes the current user to the next one
 
 **Parameters:**
 - `game_id`_: int_ - game id
 
 
 ### makeTurn
-> async def makeTurn(game_id: int, player_id: int, column: int)
+> async def makeTurn(game_id: int, user_id: int, column: int)
 
-Makes a turn for the current player, checks if column is valid and if the game is over
+Makes a turn for the current user, checks if column is valid and if the game is over
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
+- `user_id`_: int_ - user id
 - `column`_: int_ - column number
 
 
@@ -141,7 +141,7 @@ Starts a rematch for the game
 ### closeGame
 > async def closeGame(game_id: int)
 
-Deletes the game and closes the connection for all players
+Deletes the game and closes the connection for all users
 
 **Parameters:**
 - `game_id`_: int_ - game id
@@ -159,28 +159,28 @@ Checks if the game exists
 - `bool` - True if the game exists, False otherwise
 
 
-### checkIfPlayerInGame
-> async def checkIfPlayerInGame(game_id: int, player_id: int) -> bool:
+### checkIfUserInGame
+> async def checkIfUserInGame(game_id: int, user_id: int) -> bool:
 
-Checks if the player is in the game
-
-**Parameters:**
-- `game_id`_: int_ - game id
-
-**Returns:**
-- `bool` - True if the player is in the game, False otherwise
-
-
-### checkIfPlayerIsCurrent
-> async def checkIfPlayerIsCurrent(game_id: int, player_id: int) -> bool:
-
-Checks if the player is the current player
+Checks if the user is in the game
 
 **Parameters:**
 - `game_id`_: int_ - game id
 
 **Returns:**
-- `bool` - True if the player is the current player, False otherwise
+- `bool` - True if the user is in the game, False otherwise
+
+
+### checkIfUserIsCurrent
+> async def checkIfUserIsCurrent(game_id: int, user_id: int) -> bool:
+
+Checks if the user is the current user
+
+**Parameters:**
+- `game_id`_: int_ - game id
+
+**Returns:**
+- `bool` - True if the user is the current user, False otherwise
 
 
 ### checkIfGameStarted
@@ -195,16 +195,16 @@ Checks if the game started
 - `bool` - True if the game started, False otherwise
 
 
-### checkIfPlayersCountIsEnough
-> async def checkIfPlayersCountIsEnough(game_id: int) -> bool:
+### checkIfUsersCountIsEnough
+> async def checkIfUsersCountIsEnough(game_id: int) -> bool:
 
-Checks if the number of players in the game no more than 2
+Checks if the number of users in the game no more than 2
 
 **Parameters:**
 - `game_id`_: int_ - game id
 
 **Returns:**
-- `bool` - True if the number of players in the game >= 2, False otherwise
+- `bool` - True if the number of users in the game >= 2, False otherwise
 
 
 ## WebSocketAccessor
@@ -216,19 +216,19 @@ Checks if the number of players in the game no more than 2
 ### TURN_TIMEOUT
 > TURN_TIMEOUT: int
 
-Time in seconds for the player to make a turn
+Time in seconds for the user to make a turn
 
 
-### WAITING_FOR_PLAYER_TIMEOUT
-> WAITING_FOR_PLAYER_TIMEOUT: int
+### WAITING_FOR_USER_TIMEOUT
+> WAITING_FOR_USER_TIMEOUT: int
 
-Time in seconds for the player to join the game
+Time in seconds for the user to join the game
 
 
 ### REMATCH_TIMEOUT
 > REMATCH_TIMEOUT: int
 
-Time in seconds for the player to accept the rematch
+Time in seconds for the user to accept the rematch
 
 
 ### Event
@@ -264,7 +264,7 @@ Dictionary that contains all connections
 > async def open(request: [base.application.Request](#request))
 
 Handles the WebSocket connection from request and adds it to the connections,
-checks if the game exists and if the player is in the game
+checks if the game exists and if the user is in the game
 
 **Parameters:**
 - `request`_: [base.application.Request](#request)_ - request from the client
@@ -273,20 +273,20 @@ checks if the game exists and if the player is in the game
 ### close
 > async def close(game_id: int, user_id: int, reason: str | None)
 
-Wrapper for the [_close](#_close) method, if reason is passed - broadcasts the reason to all players,
-also check if the game exists and if the player is in the game
+Wrapper for the [_close](#_close) method, if reason is passed - broadcasts the reason to all users,
+also check if the game exists and if the user is in the game
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `user_id`_: int_ - player id
+- `user_id`_: int_ - user id
 - `reason`(Optional)_: str | None_  - reason for closing the connection
 
 
 ### closeAll
 > async def closeAll(game_id: int)
 
-Wrapper for the [_close](#_close) method, closes the connection for all players,
-if reason is passed - broadcasts the reason to all players, also check if the game exists
+Wrapper for the [_close](#_close) method, closes the connection for all users,
+if reason is passed - broadcasts the reason to all users, also check if the game exists
 
 **Parameters:**
 - `game_id`_: int_ - game id
@@ -296,18 +296,18 @@ if reason is passed - broadcasts the reason to all players, also check if the ga
 ### _close
 > async def _close(game_id: int, user_id: int)
 
-Closes the connection for the player, without checking if the game exists and if the player is in the game,
+Closes the connection for the user, without checking if the game exists and if the user is in the game,
 also cancel the connection timeout task
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `user_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 
 ### send
 > async def send(game_id: int, event: [Event](#event))
 
-Sends an event to the single player
+Sends an event to the single user
 
 **Parameters:**
 - `game_id`_: int_ - game id
@@ -317,68 +317,68 @@ Sends an event to the single player
 ### broadcast
 > async def broadcast(game_id: int, event: [Event](#event), except_of: list[int])
 
-Sends an event to all players in the game
+Sends an event to all users in the game
 
 **Parameters:**
 - `game_id`_: int_ - game id
 - `event`_: [Event](#event)_ - event to send
-- `except_of`_: list[int]_ - list of player ids to exclude from sending
+- `except_of`_: list[int]_ - list of user ids to exclude from sending
 
 
 ### readStream
 > async def readStream(game_id: int, user_id: int) -> typing.AsyncIterable[Event]
 
-Reads the stream of raw events from the player
+Reads the stream of raw events from the user
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `user_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 **Yields:**
-- `Event` - event from the player
+- `Event` - event from the user
 
 
 ### isClosed
-> async def isClosed(self, game_id: int, player_id: int) -> bool:
+> async def isClosed(self, game_id: int, user_id: int) -> bool:
 
 Checks if the connection is closed
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 **Returns:**
 - `bool` - True if the connection is closed, False otherwise
 
 
 ### createTurnTimeoutTask
-> async def createTurnTimeoutTask(game_id: int, player_id: int)
+> async def createTurnTimeoutTask(game_id: int, user_id: int)
 
-Creates a task that will close the connection if the player does not make a turn in time
-
-**Parameters:**
-- `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
-
-
-### createWaitingForPlayerTimeoutTask
-> async def createWaitingForPlayerTimeoutTask(game_id: int, player_id: int)
-
-Creates a task that will close the connection if the second player does not join the game in time
+Creates a task that will close the connection if the user does not make a turn in time
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
+- `user_id`_: int_ - user id
+
+
+### createWaitingForUserTimeoutTask
+> async def createWaitingForUserTimeoutTask(game_id: int, user_id: int)
+
+Creates a task that will close the connection if the second user does not join the game in time
+
+**Parameters:**
+- `game_id`_: int_ - game id
+- `user_id`_: int_ - user id
 
 
 ### createRematchTimeoutTask
-> async def createRematchTimeoutTask(game_id: int, player_id: int)
+> async def createRematchTimeoutTask(game_id: int, user_id: int)
 
-Creates a task that will close the connection if the player does not accept the rematch in time
+Creates a task that will close the connection if the user does not accept the rematch in time
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 
 ### createTimeoutTask
@@ -391,7 +391,7 @@ Creates a task that will call the callback after the timeout, wrapper for the [_
 - `callback`_: typing.Callable_ - callback to call after the timeout
 - `kwargs`_: dict_ - arguments for the callback
     - `game_id`_: int_ - game id
-    - `user_id`_: int_ - player id
+    - `user_id`_: int_ - user id
     - `reason`(Optional)_: str | None_  - reason for closing the connection
 
 
@@ -402,7 +402,7 @@ Cancels the connection timeout task
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `player_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 
 ### cancelGameTimeoutTasks
@@ -439,7 +439,7 @@ Handles the prepared client events
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `user_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 
 ### handleDisconnect
@@ -449,7 +449,7 @@ Handles the client disconnect
 
 **Parameters:**
 - `game_id`_: int_ - game id
-- `user_id`_: int_ - player id
+- `user_id`_: int_ - user id
 
 
 
