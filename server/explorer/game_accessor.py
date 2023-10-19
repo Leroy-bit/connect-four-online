@@ -5,12 +5,12 @@ from explorer.websocket_manager import ServerEvents
 from dataclasses import dataclass, asdict
 
 @dataclass
-class Player:
-    '''Player class.
+class User:
+    '''User class.
     
     Attributes:
-        id: Player ID.
-        name: Player name.
+        id: User ID.
+        name: User name.
     '''
     id: int 
     name: str
@@ -21,22 +21,22 @@ class Game:
     Attributes:
         id: Game ID.
         started: Game started.
-        players: Players in game.
+        users: Users in game.
         board: Game board.
         boardRows: Number of rows in game board.
         boardColumns: Number of columns in game board.
-        current_player_id: Current player ID.
+        current_user_id: Current user ID.
     '''
 
-    def __init__(self, id: int, player_id: int, user_name) -> None:
+    def __init__(self, id: int, user_id: int, user_name) -> None:
         self.id: int = id
         self.started: bool = False
-        self.players: dict[int, Player] = {player_id: Player(player_id,  user_name)}
+        self.users: dict[int, User] = {user_id: User(user_id,  user_name)}
         self.rematch: bool = False
         self.board: list[list] = []
         self.boardRows: int = 7
         self.boardColumns: int = 8
-        self.current_player_id: int = None
+        self.current_user_id: int = None
 
 
 class GameAccessor(BaseEntity):
@@ -56,27 +56,27 @@ class GameAccessor(BaseEntity):
         '''Checks if a game has started. Returns True if game has started.'''
         return self.GAMES[game_id].started
     
-    async def checkIfPlayerIsCurrent(self, game_id: int, player_id: int) -> bool:
-        '''Checks if a player is the current player. Returns True if player is the current player.'''
-        return self.GAMES[game_id].current_player_id == player_id
+    async def checkIfUserIsCurrent(self, game_id: int, user_id: int) -> bool:
+        '''Checks if a user is the current user. Returns True if user is the current user.'''
+        return self.GAMES[game_id].current_user_id == user_id
     
-    async def checkIfPlayerInGame(self, game_id: int, player_id: int) -> bool:
-        '''Checks if a player is in a game. Returns True if player is in game.'''
-        return player_id in self.GAMES[game_id].players.keys()
+    async def checkIfUserInGame(self, game_id: int, user_id: int) -> bool:
+        '''Checks if a user is in a game. Returns True if user is in game.'''
+        return user_id in self.GAMES[game_id].users.keys()
     
-    async def checkIfPlayersCountIsEnough(self, game_id: int) -> bool:
-        '''Checks if there are enough players in a game. Returns True if there are enough players.'''
-        return len(self.GAMES[game_id].players) >= 2
+    async def checkIfUsersCountIsEnough(self, game_id: int) -> bool:
+        '''Checks if there are enough users in a game. Returns True if there are enough users.'''
+        return len(self.GAMES[game_id].users) >= 2
 
-    async def getAllPlayers(self, game_id: int) -> list[Player]:
-        '''Returns all players in a game.'''
-        return [asdict(player) for player in self.GAMES[game_id].players.values()]
+    async def getAllUsers(self, game_id: int) -> list[User]:
+        '''Returns all users in a game.'''
+        return [asdict(user) for user in self.GAMES[game_id].users.values()]
 
-    async def createGame(self, game_id: int, player_id: int, user_name: str) -> None:
+    async def createGame(self, game_id: int, user_id: int, user_name: str) -> None:
         '''Create a new game.'''
-        game = Game(game_id, player_id, user_name)
+        game = Game(game_id, user_id, user_name)
         self.GAMES[game.id] = game
-        self.explorer.logger.trace(f'Game {game_id} created by {user_name}[{player_id}]')
+        self.explorer.logger.trace(f'Game {game_id} created by {user_name}[{user_id}]')
 
     async def startGame(self, game_id: int) -> None:
         '''Starts a game.'''
@@ -84,19 +84,19 @@ class GameAccessor(BaseEntity):
         self.GAMES[game_id].board = []
         for _ in range(self.GAMES[game_id].boardColumns):
             self.GAMES[game_id].board.append([])
-        self.GAMES[game_id].current_player_id = random.choice(list(self.GAMES[game_id].players.keys()))
+        self.GAMES[game_id].current_user_id = random.choice(list(self.GAMES[game_id].users.keys()))
         await self.explorer.ws.cancelGameTimeoutTasks(game_id)
-        await self.explorer.ws.createTurnTimeoutTask(game_id, self.GAMES[game_id].current_player_id)
+        await self.explorer.ws.createTurnTimeoutTask(game_id, self.GAMES[game_id].current_user_id)
         await self.explorer.ws.broadcast(
             game_id, 
-            Event(ServerEvents.GAME_STARTED, {'current_player_id': self.GAMES[game_id].current_player_id})
+            Event(ServerEvents.GAME_STARTED, {'current_user_id': self.GAMES[game_id].current_user_id})
         )
 
-    async def addPlayer(self, game_id: int, player_id: int, user_name: str) -> Player:
-        '''Adds a player to a game.'''
-        player = Player(player_id, user_name)
-        self.GAMES[game_id].players[player_id] = player
-        return player
+    async def addUser(self, game_id: int, user_id: int, user_name: str) -> User:
+        '''Adds a user to a game.'''
+        user = User(user_id, user_name)
+        self.GAMES[game_id].users[user_id] = user
+        return user
             
     async def checkWin(self, board: list[list[int]], columns: int, rows: int) -> int:
         '''Checks the board for a winning combination.'''
@@ -162,42 +162,42 @@ class GameAccessor(BaseEntity):
                 return False
         return True
 
-    async def nextPlayer(self, game_id: int) -> None:
-        '''Switches to the next player.'''
-        players_ids = list(self.GAMES[game_id].players.keys())
-        next_player_id = players_ids[players_ids.index(self.GAMES[game_id].current_player_id) - 1]
-        self.GAMES[game_id].current_player_id = next_player_id
-        await self.explorer.ws.createTurnTimeoutTask(game_id, next_player_id)
+    async def nextUser(self, game_id: int) -> None:
+        '''Switches to the next user.'''
+        users_ids = list(self.GAMES[game_id].users.keys())
+        next_user_id = users_ids[users_ids.index(self.GAMES[game_id].current_user_id) - 1]
+        self.GAMES[game_id].current_user_id = next_user_id
+        await self.explorer.ws.createTurnTimeoutTask(game_id, next_user_id)
         await self.explorer.ws.broadcast(
             game_id, 
-            Event(ServerEvents.NEXT_PLAYER, {'current_player_id': next_player_id})
+            Event(ServerEvents.NEXT_USER, {'current_user_id': next_user_id})
         )
 
-    async def makeTurn(self, game_id: int, player_id: int, column: int = None) -> None:
+    async def makeTurn(self, game_id: int, user_id: int, column: int = None) -> None:
         '''Makes a turn.'''
         if not (await self.checkIfGameStarted(game_id)):
             return
         if not (await self.checkIfGameExists(game_id)):
             return
-        if not (await self.checkIfPlayerIsCurrent(game_id, player_id)):
+        if not (await self.checkIfUserIsCurrent(game_id, user_id)):
             return
         if not column > 0 and not column < self.GAMES[game_id].boardColumns and not column != None:
             return
         
         if len(self.GAMES[game_id].board[column]) < self.GAMES[game_id].boardRows: # Check if move is valid.
-            self.GAMES[game_id].board[column].append(player_id)
+            self.GAMES[game_id].board[column].append(user_id)
             await self.explorer.ws.broadcast(
                 game_id, 
-                Event(ServerEvents.MAKED_TURN, {'player_id': player_id, 'column': column}), 
-                [player_id]
+                Event(ServerEvents.MAKED_TURN, {'user_id': user_id, 'column': column}), 
+                [user_id]
             )  
-            await self.explorer.ws.cancelTimeoutTask(game_id, self.GAMES[game_id].current_player_id)
+            await self.explorer.ws.cancelTimeoutTask(game_id, self.GAMES[game_id].current_user_id)
             winner = await self.checkWin(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             draw = await self.checkDraw(self.GAMES[game_id].board, self.GAMES[game_id].boardColumns, self.GAMES[game_id].boardRows)
             if winner:
                 await self.explorer.ws.broadcast(
                     game_id, 
-                    Event(ServerEvents.PLAYER_WIN, {'player_id': winner})
+                    Event(ServerEvents.USER_WIN, {'user_id': winner})
                 )
                 self.GAMES[game_id].started = False
                 await self.explorer.ws.createRematchTimeoutTask(game_id, winner)
@@ -208,9 +208,9 @@ class GameAccessor(BaseEntity):
                 )
                 self.GAMES[game_id].started = False
             else:
-                await self.nextPlayer(game_id)
+                await self.nextUser(game_id)
         
-    async def rematch(self, game_id: int, player_id: int) -> None:
+    async def rematch(self, game_id: int, user_id: int) -> None:
         '''Rematches a game.'''
         if not (await self.checkIfGameExists(game_id)):
             return
@@ -221,8 +221,8 @@ class GameAccessor(BaseEntity):
             self.GAMES[game_id].rematch = False
         else:
             self.GAMES[game_id].rematch = True
-            await self.explorer.ws.createRematchTimeoutTask(game_id, player_id)
-            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.REMATCH_REQUEST, {}), [player_id])
+            await self.explorer.ws.createRematchTimeoutTask(game_id, user_id)
+            await self.explorer.ws.broadcast(game_id, Event(ServerEvents.REMATCH_REQUEST, {}), [user_id])
         
     async def closeGame(self, game_id: int) -> None:
         '''Closes a game.'''

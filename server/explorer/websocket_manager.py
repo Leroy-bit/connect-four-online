@@ -20,9 +20,9 @@ class WebSocketManager(BaseEntity):
         if not (await self.explorer.ws.isClosed(game_id, user_id)):
             await self.explorer.ws.broadcast(
                 game_id, 
-                Event(ServerEvents.PLAYER_DISCONNECTED, {'player_id': user_id}), 
+                Event(ServerEvents.USER_DISCONNECTED, {'user_id': user_id}), 
                 [user_id]
             )
         await self.explorer.game_accessor.closeGame(game_id)
-        self.explorer.logger.trace(f'Player {user_id} disconnected from game {game_id}')
+        self.explorer.logger.trace(f'User {user_id} disconnected from game {game_id}')
     

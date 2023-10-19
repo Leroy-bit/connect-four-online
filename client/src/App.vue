@@ -1,18 +1,18 @@
 <template>
       <ScreenManager ref="screenManager"></ScreenManager>
       <PopupManager @popupButtonClicked="onPopupButtonClicked" ref="popupManager" />
-      <Player v-show="gameStarted" :id="opponent.id" :name="opponent.name" :barType="false" :isCurrentPlayer="opponent.id == currentPlayerId">
+      <User v-show="gameStarted" :id="opponent.id" :name="opponent.name" :barType="false" :isCurrentUser="opponent.id == currentUserId">
           {{opponent.name}}
-      </Player> 
+      </User> 
       <Board v-show="gameStarted" @makeTurn="makeTurn" ref="board"/>
-      <Player v-show="gameStarted" :id="me.id" :name="me.name" :barType="true" :isCurrentPlayer="me.id == currentPlayerId">
+      <User v-show="gameStarted" :id="me.id" :name="me.name" :barType="true" :isCurrentUser="me.id == currentUserId">
         {{ this.$t('you') }}
-      </Player>
+      </User>
 </template>
 
 <script>
 import Board from './components/Board.vue'
-import Player from './components/Player.vue'
+import User from './components/User.vue'
 import ScreenManager from './components/ScreenManager.vue'
 import PopupManager from './components/PopupManager.vue'
 
@@ -24,17 +24,17 @@ export default {
     return {
             me: window.Telegram.WebApp.initDataUnsafe.chat_type == "private" ? {id: window.Telegram.WebApp.initDataUnsafe.user.id, name: window.Telegram.WebApp.initDataUnsafe.user.first_name} : undefined,
             opponent: {},
-            currentPlayerId: 1,
+            currentUserId: 1,
             serverEvents: {
                 CONNECTED: 'CONNECTED',
                 DISCONNECTED: 'DISCONNECTED',
                 MAKED_TURN: 'MAKED_TURN',
-                PLAYER_JOINED: 'PLAYER_JOINED',
-                PLAYER_DISCONNECTED: 'PLAYER_DISCONNECTED',
+                USER_JOINED: 'USER_JOINED',
+                USER_DISCONNECTED: 'USER_DISCONNECTED',
                 GAME_STARTED: 'GAME_STARTED',
-                NEXT_PLAYER: 'NEXT_PLAYER',
+                NEXT_USER: 'NEXT_USER',
                 REMATCH_REQUEST: 'REMATCH_REQUEST',
-                PLAYER_WIN: 'PLAYER_WIN',
+                USER_WIN: 'USER_WIN',
                 DRAW: 'DRAW'
             },
             clientEvents: {
@@ -53,7 +53,7 @@ export default {
 
   components: {
     'Board': Board,
-    'Player': Player,
+    'User': User,
     'PopupManager': PopupManager,
     'ScreenManager': ScreenManager
   },
@@ -66,14 +66,14 @@ export default {
       }
     },
     makeTurn(column) {
-      if (this.me.id == this.currentPlayerId && !this.hasMoved){
+      if (this.me.id == this.currentUserId && !this.hasMoved){
         this.hasMoved = true
         this.$refs.board.pushToBoard(0, column)
         this.sendEvent(this.clientEvents.MAKE_TURN, {column: column})
       }
     },
-    nextPlayer(playerId) {
-      this.currentPlayerId = playerId
+    nextUser(userId) {
+      this.currentUserId = userId
       this.hasMoved = false
     },
     onPopupButtonClicked(id) {
@@ -115,8 +115,8 @@ export default {
       if (data.event == this.serverEvents.CONNECTED) {
         
         this.connected = true
-        if (data.data.players) {
-          this.opponent = data.data.players[0]
+        if (data.data.users) {
+          this.opponent = data.data.users[0]
         }
         else {
           this.waitingTimeoutId = setTimeout(() => {
@@ -125,7 +125,7 @@ export default {
 
         }
       }
-      else if (data.event == this.serverEvents.PLAYER_JOINED) {
+      else if (data.event == this.serverEvents.USER_JOINED) {
         window.Telegram.WebApp.enableClosingConfirmation()
         this.opponent = data.data
         clearTimeout(this.waitingTimeoutId)
@@ -135,13 +135,13 @@ export default {
         this.$refs.popupManager.closePopup()
         this.$refs.board.clearBoard()
         this.gameStarted = true
-        this.nextPlayer(data.data.current_player_id)
+        this.nextUser(data.data.current_user_id)
       }
       else if (data.event == this.serverEvents.MAKED_TURN) {
-        this.$refs.board.pushToBoard(data.data.player_id, data.data.column)
+        this.$refs.board.pushToBoard(data.data.user_id, data.data.column)
       }
-      else if (data.event == this.serverEvents.PLAYER_WIN) {
-        let text = data.data.player_id == this.me.id ? this.$t("win") : this.$t("lose")
+      else if (data.event == this.serverEvents.USER_WIN) {
+        let text = data.data.user_id == this.me.id ? this.$t("win") : this.$t("lose")
         setTimeout(() => {
           this.$refs.popupManager.openPopup(text, [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'close', text: this.$t('popups.buttons.disconnect'), type: false}])
         }, 500)
@@ -151,10 +151,10 @@ export default {
           this.$refs.popupManager.openPopup(this.$t("draw"), [{id: 'rematch', text: this.$t('popups.buttons.rematch'), type: true}, {id: 'close', text: this.$t('popups.buttons.disconnect'), type: false}])
         }, 500)
       }
-      else if (data.event == this.serverEvents.NEXT_PLAYER) { 
-        this.nextPlayer(data.data.current_player_id)
+      else if (data.event == this.serverEvents.NEXT_USER) { 
+        this.nextUser(data.data.current_user_id)
       }
-      else if (data.event == this.serverEvents.PLAYER_DISCONNECTED) {
+      else if (data.event == this.serverEvents.USER_DISCONNECTED) {
         if (data.data.reason) {
           this.$refs.popupManager.openPopup(this.$t('popups.text.opponentDisconnectedReason', [data.data.reason]), [{id: 'close', text: this.$t('popups.buttons.close'), type: true}])
 

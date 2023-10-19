@@ -1,11 +1,11 @@
 <template>
-    <span class="player-name" :class="{upbar: barType, downbar: !barType, current: isCurrentPlayer}">
+    <span class="user-name" :class="{upbar: barType, downbar: !barType, current: isCurrentUser}">
         <slot></slot>
     </span>
 </template>
 
 <style scoped>
-    .player-name {
+    .user-name {
         color: var(--tg-theme-text-color);
         position: relative;
         display: flex;
@@ -49,7 +49,7 @@
         props: {
             id: Number,
             barType: Boolean,
-            isCurrentPlayer: Boolean
+            isCurrentUser: Boolean
         }
     }
 </script>
