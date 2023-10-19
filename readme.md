@@ -56,7 +56,7 @@ python3.10 server/main.py
 ngrok http --domain {your_ngrok_domain_name} 80
 ```
 
-# [Extended documentation](https://github.com/Leroy-bit/connect-four-online)
+# [Extended documentation](https://leroy-bit.github.io/connect-four-online)
 
 
 
