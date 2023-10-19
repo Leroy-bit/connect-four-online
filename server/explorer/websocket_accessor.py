@@ -174,8 +174,8 @@ class WebSocketAccessor(BaseEntity):
         '''Check if connection is closed.'''
         if not self.connections.get(game_id):
             return True
-        if not self.connections[game_id].get(user_id):
-            return True
+        if self.connections[game_id].get(user_id):
+            return False
         return self.connections[game_id][user_id].ws.closed
 
     async def createTurnTimeoutTask(self, game_id: int, user_id: int) -> None:
