@@ -126,11 +126,11 @@ export default {
         }
       }
       else if (data.event == this.serverEvents.USER_JOINED) {
-        window.Telegram.WebApp.enableClosingConfirmation()
         this.opponent = data.data
         clearTimeout(this.waitingTimeoutId)
       }
       else if (data.event == this.serverEvents.GAME_STARTED) {
+        window.Telegram.WebApp.enableClosingConfirmation()
         this.$refs.screenManager.hideScreen()
         this.$refs.popupManager.closePopup()
         this.$refs.board.clearBoard()

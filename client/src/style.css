@@ -20,6 +20,7 @@ body {
   aspect-ratio: 9/16;
   max-width: var(--max-width);
   height: fit-content;
+  background-color: var(--tg-theme-bg-color);
 }
 #app {
   width: 100%;
