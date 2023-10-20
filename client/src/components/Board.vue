@@ -34,7 +34,7 @@
         /* background-color: var(--decline-color); */
     }
     .my-chip {
-        background-color: rgb(100, 245, 100);
+        background-color: rgb(87, 218, 87);
         /* background-color: var(--accept-color); */
     }
 </style>

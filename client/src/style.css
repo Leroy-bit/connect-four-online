@@ -15,6 +15,7 @@
 
 body {
   margin: 0;
+  user-select: none;
   font-family: 'Open Sans', sans-serif;
   font-weight: 600;
   aspect-ratio: 9/16;

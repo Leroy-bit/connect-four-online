@@ -22,16 +22,17 @@
     left: 0;
     z-index: 100;
     width: 100%;
+    backdrop-filter: blur(1px);
     max-width:  var(--max-width);
     height: var(--tg-viewport-stable-height);
-    background-color: rgba(0, 0, 0, 0.33);
+    background-color: rgba(0, 0, 0, 0.25);
 }
 
 .popup__inner {
     width: 85%;
     height: fit-content;
     background-color: var(--tg-theme-bg-color);
-    opacity: 0.92;
+    opacity: 0.9;
     border-radius: 10px;
     padding: 10px;
     display: flex;
