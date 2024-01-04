@@ -40,6 +40,12 @@ class BotAccessor(BaseEntity):
 
         @router.message(filters.CommandStart())
         async def start(message: types.Message) -> None:
+            await self.explorer.db.handleUser(
+                message.from_user.id,
+                message.from_user.first_name,
+                message.from_user.last_name,
+                message.from_user.username,
+                message.from_user.language_code)
             await message.answer(
                 self._(
                     'To play click the button below, and select chat in which you want to play.', 

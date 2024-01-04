@@ -2,6 +2,7 @@ import typing
 from explorer.game_accessor import GameAccessor
 from explorer.websocket_manager import WebSocketManager
 from explorer.websocket_accessor import WebSocketAccessor
+from explorer.db import DBAccessor
 from explorer.bot import BotAccessor
 from loguru._logger import Logger
 
@@ -31,3 +32,4 @@ class Explorer:
         self.ws_manager: WebSocketManager = WebSocketManager(self)
         self.bot_accessor: BotAccessor = BotAccessor(self)
         self.logger: Logger = logger
+        self.db: DBAccessor = DBAccessor(self)

@@ -8,7 +8,7 @@ from explorer import Explorer
 import config
 
 async def onStartup(app: Application) -> None:
-    pass
+    await app.explorer.db.setup()
 
 def create_app() -> Application:
     _logger = logger
