@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="src/style.css">
+    <title>Connect Four Game</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { createApp } from 'vue'
+      import { createI18n } from 'vue-i18n'
+      import {messages} from './src/i18n'
+      import Game from './src/Game.vue'
+
+      const i18n = createI18n({
+          legacy: false,
+          locale: window.Telegram.WebApp.initDataUnsafe.user.language_code,
+          fallbackLocale: 'en',
+          messages: messages
+      })
+
+      const app = createApp(Game)
+      app.use(i18n)
+      app.mount('#app')
+
+      window.Telegram.WebApp.ready()
+
+    </script>
+  </body>
+</html>
