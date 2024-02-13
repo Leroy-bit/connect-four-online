@@ -24,3 +24,4 @@ test
 dist
 dist-ssr
 *.local
+main.db
